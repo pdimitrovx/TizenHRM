@@ -106,6 +106,20 @@ create_base_gui(appdata_s *ad)
 
 	/* Show window after base gui is set up */
 	evas_object_show(ad->win);
+
+    // Create a naviframe
+    ad->navi = elm_naviframe_add(ad->conform);
+    evas_object_size_hint_align_set(ad->navi, EVAS_HINT_FILL, EVAS_HINT_FILL);
+    evas_object_size_hint_weight_set(ad->navi, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+
+    elm_object_content_set(ad->conform, ad->navi);
+    evas_object_show(ad->navi);
+
+	//Lets call new button, testing - bug, replaces label!
+  //Evas_Object *box = elm_box_add(ad->conform);
+	//	   elm_object_content_set(ad->conform, box);
+//
+
 }
 /*=============================UI EVAS END HERE================================*/
 
@@ -145,9 +159,8 @@ main(int argc, char *argv[])
 	event_callback.create = app_create;
 	event_callback.terminate = app_terminate;
 
-//Lets call new button, testing
-	   Evas_Object *box = elm_box_add(ad.conform);
-	   elm_object_content_set(ad.conform, box);
+
+
 
 	ret = ui_app_main(argc, argv, &event_callback, &ad);
 	if (ret != APP_ERROR_NONE) {
