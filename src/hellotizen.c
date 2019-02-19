@@ -30,7 +30,7 @@ typedef struct appdata {
 } appdata_s;
 
 
-Evas_Object *new_button(appdata_s *ad,Evas_Object *parrent, char *name, void *action){
+Evas_Object *new_button(appdata_s *ad, Evas_Object *parrent, char *name, void *action){
 
 	// Create a button
 	    Evas_Object *bt = elm_button_add(parrent);
@@ -38,7 +38,7 @@ Evas_Object *new_button(appdata_s *ad,Evas_Object *parrent, char *name, void *ac
 	    evas_object_smart_callback_add(bt, "clicked", (Evas_Smart_Cb) action, ad);
 	    evas_object_size_hint_weight_set(bt, EVAS_HINT_EXPAND, 0.0);
 	    evas_object_size_hint_align_set(bt, EVAS_HINT_FILL, EVAS_HINT_FILL);
-	    elm_box_pack_end(display, bt);
+	    elm_box_pack_end(parrent, bt);
 	    evas_object_show(bt);
 	    return bt;
 
