@@ -25,9 +25,12 @@ typedef struct appdata {
 	Evas_Object *win;
 	Evas_Object *conform;
 	Evas_Object *label;
+    Evas_Object *navi;
+
 } appdata_s;
 
-Evas_Object *new_button(Evas_Object *parrent, char *name, void *action){
+
+Evas_Object *new_button(appdata_s *ad,Evas_Object *parrent, char *name, void *action){
 
 	// Create a button
 	    Evas_Object *bt = elm_button_add(parrent);
@@ -40,12 +43,12 @@ Evas_Object *new_button(Evas_Object *parrent, char *name, void *action){
 	    return bt;
 
 }
-Evas_object *parrent;
+//Evas_object *parrent;
 
 
-button = elm_button_add(parrent);
-elm_object_text_set(new_button,"Read HRS");
-elm_object_style_set(new_button, "bottom");
+//button = elm_button_add(parrent);
+//elm_object_text_set(new_button,"Read HRS");
+//elm_object_style_set(new_button, "bottom");
 
 
 static void
@@ -112,9 +115,11 @@ app_create(void *data)
 		Initialize UI resources and application's data
 		If this function returns true, the main loop of application starts
 		If this function returns false, the application is terminated */
-	appdata_s *ad = data;
+	//appdata_s *ad = data;
 
-	create_base_gui(ad);
+	//create_base_gui(ad);
+    create_base_gui((appdata_s *)data);
+
 
 	return true;
 }
