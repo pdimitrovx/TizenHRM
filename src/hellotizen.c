@@ -29,6 +29,8 @@ typedef struct appdata {
 
 } appdata_s;
 
+Evas_Object *startHRM;
+
 
 Evas_Object *new_button(appdata_s *ad, Evas_Object *parrent, char *name, void *action){
 
@@ -86,6 +88,7 @@ create_base_gui(appdata_s *ad)
 	/* Create and initialize elm_conformant.
 	   elm_conformant is mandatory for base gui to have proper size
 	   when indicator or virtual keypad is visible. */
+
 	ad->conform = elm_conformant_add(ad->win);
 	elm_win_indicator_mode_set(ad->win, ELM_WIN_INDICATOR_SHOW);
 	elm_win_indicator_opacity_set(ad->win, ELM_WIN_INDICATOR_OPAQUE);
@@ -142,7 +145,9 @@ main(int argc, char *argv[])
 	event_callback.create = app_create;
 	event_callback.terminate = app_terminate;
 
-
+//Lets call new button, testing
+	   Evas_Object *box = elm_box_add(ad.conform);
+	   elm_object_content_set(ad.conform, box);
 
 	ret = ui_app_main(argc, argv, &event_callback, &ad);
 	if (ret != APP_ERROR_NONE) {
