@@ -52,7 +52,10 @@ Evas_Object *new_button(appdata_s *ad, Evas_Object *parrent, char *name, void *a
 //elm_object_text_set(new_button,"Read HRS");
 //elm_object_style_set(new_button, "bottom");
 
+void _sensor_start_cb(void *data, Evas_Object *obj, void *event_info){
 
+
+}
 static void
 win_delete_request_cb(void *data, Evas_Object *obj, void *event_info)
 {
@@ -116,9 +119,11 @@ create_base_gui(appdata_s *ad)
     evas_object_show(ad->navi);
 
 	//Lets call new button, testing - bug, replaces label!
-  //Evas_Object *box = elm_box_add(ad->conform);
-	//	   elm_object_content_set(ad->conform, box);
-//
+    Evas_Object *box = elm_box_add(ad->conform);
+    elm_object_content_set(ad->conform, box);
+    startHRM = new_button(ad, box, "Start", _sensor_start_cb);
+
+
 
 }
 /*=============================UI EVAS END HERE================================*/
