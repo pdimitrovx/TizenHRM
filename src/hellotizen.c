@@ -28,8 +28,8 @@ typedef struct appdata {
     Evas_Object *navi;
 
 } appdata_s;
-
 Evas_Object *startHRM;
+
 
 
 Evas_Object *new_button(appdata_s *ad, Evas_Object *parrent, char *name, void *action){
@@ -43,15 +43,56 @@ Evas_Object *new_button(appdata_s *ad, Evas_Object *parrent, char *name, void *a
 	    elm_box_pack_end(parrent, bt);
 	    evas_object_show(bt);
 	    return bt;
-
 }
 //Evas_object *parrent;
-
-
 //button = elm_button_add(parrent);
 //elm_object_text_set(new_button,"Read HRS");
 //elm_object_style_set(new_button, "bottom");
 
+bool model_get_app_data_path()
+{
+	char *path = NULL;
+
+	char *path_tmp = app_get_data_path();
+	if (!path_tmp) {
+		dlog_print(DLOG_ERROR,LOG_TAG, "Function app_get_data_path() failed");
+		return false;
+	}
+
+	*path = strdup(path_tmp);
+	return true;
+}
+
+
+static char* write_file(const char *filepath, const char* buf)
+{
+    FILE *fp;
+    fp = fopen(filepath, "w");
+    fputs(buf, fp);
+    fclose(fp);
+    return NULL;
+}
+
+static char* read_file(const char* filepath)
+{
+    FILE *fp = fopen(filepath, "r");
+    if (fp == NULL)
+        return NULL;
+    fseek(fp, 0, SEEK_END);
+    int bufsize = ftell(fp);
+    rewind(fp);
+    if (bufsize < 1)
+        return NULL;
+    char*buf = malloc(sizeof(char) * (bufsize));
+    memset(buf, '\0', sizeof(buf));
+    char str[200];
+    while(fgets(str, 200, fp) != NULL) {
+        dlog_print(DLOG_ERROR, "tag", "%s", str);
+        sprintf(buf + strlen(buf), "%s", str);
+    }
+    fclose(fp);
+    return buf;
+}
 void _sensor_start_cb(void *data, Evas_Object *obj, void *event_info){
 
 
@@ -156,6 +197,7 @@ app_terminate(void *data)
 int
 main(int argc, char *argv[])
 {
+	char* test = "Petar was here";
 	appdata_s ad;
 	    memset(&ad, 0x00, sizeof(appdata_s));	int ret = 0;
 
@@ -164,6 +206,9 @@ main(int argc, char *argv[])
 	event_callback.create = app_create;
 	event_callback.terminate = app_terminate;
 
+	//char * default_path = app_get_shared_data_path();
+	//write_file(default_path,test);
+	model_get_app_data_path();
 
 
 
