@@ -5,6 +5,7 @@
 #include <efl_extension.h>
 #include <sensor.h>
 #include <dlog.h>
+#include <time.h>
 
 #ifdef  LOG_TAG
 #undef  LOG_TAG
@@ -32,6 +33,38 @@ typedef struct appdata {
 Evas_Object *startHRM;
 Evas_Object *event_label;
 sensor_listener_h listener;
+
+void on_sensor_event(sensor_h sensor, sensor_event_s *event, void *user_data) {
+	//TODO PASS THE TIME STUFF AS PARAMETER, COMP EXPENSIVE!
+	time_t raw_time;
+	struct tm* time_info;
+
+	char out[100];
+
+	// Select a specific sensor with a sensor handle
+	sensor_type_e type;
+	sensor_get_type(sensor, &type);
+
+	switch (type) {
+
+	case SENSOR_HRM:
+		//print mesurement to console
+		dlog_print(DLOG_INFO, LOG_TAG, "%f", event->values[0]);
+		sprintf(out, "%f", event->values[0]);
+		//elm_object_text_set(event_label, out);
+		//insert timestamp
+		time(&raw_time);
+		time_info = localtime(&raw_time);
+		dlog_print(DLOG_INFO, LOG_TAG,
+				"Current time: %d:%s%d:%ds /Value HRM = %f", time_info->tm_hour,
+				time_info->tm_min < 10 ? "0" : "", time_info->tm_min,
+				time_info->tm_sec, event->values[0]);
+
+		break;
+	default:
+		dlog_print(DLOG_ERROR, LOG_TAG, "Not an HRM event");
+	}
+}
 
 Evas_Object *new_button(appdata_s *ad, Evas_Object *parrent, char *name,
 		void *action) {
@@ -99,6 +132,9 @@ static char* read_file(const char* filepath) {
 }
 void _sensor_start_cb(void *data, Evas_Object *obj, void *event_info) {
 
+	time_t raw_time;
+	struct tm* time_info;
+
 	void *user_data = NULL;
 	char out[100];
 
@@ -164,28 +200,114 @@ void _sensor_start_cb(void *data, Evas_Object *obj, void *event_info) {
 	dlog_print(DLOG_DEBUG, LOG_TAG, "Minimum interval of the sensor: %d",
 			min_interval);
 
-	float min_range = 0.0;
+	//get minimum range
+	float min_range;
 	error = sensor_get_min_range(sensor, &min_range);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_get_min_range error: %d",
 				error);
 		return;
-
 	}
-
 	dlog_print(DLOG_DEBUG, LOG_TAG, "Minimum range of the sensor: %d",
 			min_range);
 
-	float max_range = 0.0;
+	// Callback for sensor value change
+	error = sensor_listener_set_event_cb(listener, min_interval,
+			on_sensor_event, user_data);
+	if (error != SENSOR_ERROR_NONE) {
+		dlog_print(DLOG_ERROR, LOG_TAG,
+				"sensor_listener_set_event_cb error: %d", error);
+		return;
+	}
+
+	dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_listener_set_event_cb");
+
+//get max range - not showing up properly ?
+	float max_range;
 	error = sensor_get_max_range(sensor, &max_range);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_get_max_range error: %d",
 				error);
 		return;
 	}
-
 	dlog_print(DLOG_DEBUG, LOG_TAG, "Maximum range of the sensor: %d",
-			min_range);
+			max_range);
+
+	// Registering the Accuracy Changed Callback
+	/** This check the accuracy of th esensor (High, Low etc)
+	 error =  (listener_sensor_accuracy_changed_cb, user_data);
+	 if (error != SENSOR_ERROR_NONE) {
+	 dlog_print(DLOG_ERROR, LOG_TAG,
+	 "sensor_listener_set_accuracy_cb error: %d", error);
+	 return;
+	 }
+
+	 dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_listener_set_accuracy_cb");
+	 **/
+
+	//set the interval for HRM in milliseconds. What is the minimum (50/22ms)?
+	//CURRENTLY ERROR?
+	/**
+	 error = sensor_listener_set_interval(listener, 200);
+	 if (error != SENSOR_ERROR_NONE) {
+	 dlog_print(DLOG_ERROR, LOG_TAG,
+	 "sensor_listener_set_interval error: %d", error);
+	 return;
+	 }
+	 dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_listener_set_intervals");
+	 **/
+
+	//set the sensor always on
+	error = sensor_listener_set_option(listener, SENSOR_OPTION_ALWAYS_ON);
+	if (error != SENSOR_ERROR_NONE) {
+		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_listener_set_option error: %d",
+				error);
+		return;
+	}
+
+	dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_listener_set_option");
+
+	//start a sensor listener
+	error = sensor_listener_start(listener);
+	if (error != SENSOR_ERROR_NONE) {
+		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_listener_start error: %d",
+				error);
+		return;
+	}
+
+	dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_listener_start");
+
+	//capture a sensor event
+	sensor_event_s event;
+	error = sensor_listener_read_data(listener, &event);
+	if (error != SENSOR_ERROR_NONE) {
+
+		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_listener_read_data error: %d",
+				error);
+		return;
+	}
+
+	//loop to get the readings - TEST ONLY, MAIN LOOP CB IS AT THE TOP LOL
+	//SENSOR_HRM,
+	switch (type) {
+
+	case SENSOR_HRM:
+		//print mesurement to console
+		dlog_print(DLOG_INFO, LOG_TAG, "%f", event.values[0]);
+		sprintf(out, "%f", event.values[0]);
+		//elm_object_text_set(event_label, out);
+		//insert timestamp
+		time(&raw_time);
+		time_info = localtime(&raw_time);
+		/*dlog_print(DLOG_INFO, LOG_TAG,
+		 "Current time: %d:%s%d:%ds /Value HRM = %f", time_info->tm_hour,
+		 time_info->tm_min < 10 ? "0" : "", time_info->tm_min, time_info->tm_sec, event.values[0]
+		 );
+		 */
+		break;
+	default:
+		dlog_print(DLOG_ERROR, LOG_TAG, "Not an HRM event");
+	}
 
 	/** Get sensor details
 	 @ToDo
@@ -246,7 +368,7 @@ static void create_base_gui(appdata_s *ad) {
 	elm_win_indicator_mode_set(ad->win, ELM_WIN_INDICATOR_SHOW);
 	elm_win_indicator_opacity_set(ad->win, ELM_WIN_INDICATOR_OPAQUE);
 	evas_object_size_hint_weight_set(ad->conform, EVAS_HINT_EXPAND,
-			EVAS_HINT_EXPAND);
+	EVAS_HINT_EXPAND);
 	elm_win_resize_object_add(ad->win, ad->conform);
 	evas_object_show(ad->conform);
 
@@ -265,7 +387,7 @@ static void create_base_gui(appdata_s *ad) {
 	ad->navi = elm_naviframe_add(ad->conform);
 	evas_object_size_hint_align_set(ad->navi, EVAS_HINT_FILL, EVAS_HINT_FILL);
 	evas_object_size_hint_weight_set(ad->navi, EVAS_HINT_EXPAND,
-			EVAS_HINT_EXPAND);
+	EVAS_HINT_EXPAND);
 
 	elm_object_content_set(ad->conform, ad->navi);
 	evas_object_show(ad->navi);
