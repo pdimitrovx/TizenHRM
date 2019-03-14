@@ -33,56 +33,14 @@ typedef struct appdata {
 } appdata_s;
 
 Evas_Object *startHRM;
+Evas_Object *stopHRM;
+
 Evas_Object *event_label;
 sensor_listener_h listener;
-
-/* Registering a Callback for sensor event  */
-void on_sensor_event(sensor_h sensor, sensor_event_s *event, void *user_data) {
-	//TODO PASS THE TIME STUFF AS PARAMETER, COMP EXPENSIVE!
-	time_t raw_time;
-	struct tm* time_info;
-
-	char out[100];
-
-	// Select a specific sensor with a sensor handle
-	sensor_type_e type;
-	sensor_get_type(sensor, &type);
-
-	switch (type) {
-
-	case SENSOR_HRM:
-		//print mesurement to console
-		dlog_print(DLOG_DEBUG, LOG_TAG, "%f", event->values[0]);
-		sprintf(out, "%f", event->values[0]);
-		//elm_object_text_set(event_label, out);
-		//insert timestamp
-		time(&raw_time);
-		time_info = localtime(&raw_time);
-		dlog_print(DLOG_INFO, LOG_TAG,
-				"Current time: %d:%s%d:%ds /Value HRM = %f", time_info->tm_hour,
-				time_info->tm_min < 10 ? "0" : "", time_info->tm_min,
-				time_info->tm_sec, event->values[0]);
-
-		break;
-	default:
-		dlog_print(DLOG_ERROR, LOG_TAG, "Not an HRM event");
-	}
-}
-
-
-void _sensor_accuracy_changed_cb(sensor_h sensor, unsigned long long timestamp,
-		sensor_data_accuracy_e accuracy, void *data) {
-	dlog_print(DLOG_DEBUG, LOG_TAG, "Sensor accuracy callback invoked");
-	sensor_event_s event;
-
-	int error = sensor_listener_read_data(listener, &event);
-	dlog_print(DLOG_DEBUG, LOG_TAG, "accuracy is: %d", event.accuracy);
-}
 
 Evas_Object *new_button(appdata_s *ad, Evas_Object *parrent, char *name,
 		void *action) {
 
-	// Create a button
 	Evas_Object *bt = elm_button_add(parrent);
 	elm_object_text_set(bt, name);
 	evas_object_smart_callback_add(bt, "clicked", (Evas_Smart_Cb) action, ad);
@@ -106,7 +64,6 @@ char* model_get_app_data_path() {
 	return path_tmp;
 }
 
-//static char* write_file(char *filepath, const char* buf) {
 void write_file(const char* buf) {
 	char *file = "datafile.txt";
 	//malloc this shit
@@ -144,8 +101,69 @@ static char* read_file(const char* filepath) {
 	return buf;
 }
 
-void _sensor_stop_cb(void *data, Evas_Object *obj, void *event_info) {
+/* Registering a Callback for sensor event  */
+void on_sensor_event(sensor_h sensor, sensor_event_s *event, void *user_data) {
+	//TODO PASS THE TIME STUFF AS PARAMETER, COMP EXPENSIVE!
+	time_t raw_time;
+	struct tm* time_info;
 
+	char out[100];
+
+	// Select a specific sensor with a sensor handle
+	sensor_type_e type;
+	sensor_get_type(sensor, &type);
+
+	switch (type) {
+
+	case SENSOR_HRM:
+		//print mesurement to console
+		dlog_print(DLOG_DEBUG, LOG_TAG, "%f", event->values[0]);
+		sprintf(out, "%f", event->values[0]);
+		//elm_object_text_set(event_label, out);
+		//insert timestamp
+		time(&raw_time);
+		time_info = localtime(&raw_time);
+		dlog_print(DLOG_INFO, LOG_TAG,
+				"Current time: %d:%s%d:%ds /Value HRM = %f", time_info->tm_hour,
+				time_info->tm_min < 10 ? "0" : "", time_info->tm_min,
+				time_info->tm_sec, event->values[0]);
+
+		break;
+	default:
+		dlog_print(DLOG_ERROR, LOG_TAG, "Not an HRM event");
+	}
+}
+
+void _sensor_accuracy_changed_cb(sensor_h sensor, unsigned long long timestamp,
+		sensor_data_accuracy_e accuracy, void *data) {
+	dlog_print(DLOG_DEBUG, LOG_TAG, "Sensor accuracy callback invoked");
+	sensor_event_s event;
+
+	int error = sensor_listener_read_data(listener, &event);
+	dlog_print(DLOG_DEBUG, LOG_TAG, "accuracy is: %d", event.accuracy);
+}
+
+void _sensor_stop_cb(void *data, Evas_Object *obj, void *event_info) {
+	int error = sensor_listener_unset_event_cb(listener);
+	if (error != SENSOR_ERROR_NONE) {
+		dlog_print(DLOG_ERROR, LOG_TAG,
+				"sensor_listener_unset_event_cb error: %d", error);
+	}
+
+	error = sensor_listener_stop(listener);
+	if (error != SENSOR_ERROR_NONE) {
+		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_listener_stop error: %d",
+				error);
+	}
+
+	error = sensor_destroy_listener(listener);
+	if (error != SENSOR_ERROR_NONE) {
+		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_destroy_listener error: %d",
+				error);
+	}
+
+	elm_object_disabled_set(startHRM, EINA_FALSE);
+	elm_object_disabled_set(stopHRM, EINA_TRUE);
 }
 
 void _sensor_start_cb(void *data, Evas_Object *obj, void *event_info) {
@@ -296,6 +314,9 @@ void _sensor_start_cb(void *data, Evas_Object *obj, void *event_info) {
 		dlog_print(DLOG_ERROR, LOG_TAG, "Not an HRM event");
 	}
 
+	elm_object_disabled_set(startHRM, EINA_TRUE);
+	elm_object_disabled_set(stopHRM, EINA_FALSE);
+
 }
 
 /* registering callback method event to call
@@ -310,6 +331,33 @@ static void win_back_cb(void *data, Evas_Object *obj, void *event_info) {
 
 	/* Let window go to hide state. */
 	elm_win_lower(ad->win);
+	ui_app_exit();
+}
+
+Eina_Bool _pop_cb(void *data, Elm_Object_Item *item) {
+	elm_win_lower(((appdata_s *) data)->win);
+	return EINA_FALSE;
+}
+
+void _create_new_cd_display(appdata_s *ad, char *name, void *cb) {
+
+	// Create main box
+	Evas_Object *box = elm_box_add(ad->conform);
+	elm_object_content_set(ad->conform, box);
+	elm_box_horizontal_set(box, EINA_FALSE);
+	evas_object_size_hint_align_set(box, EVAS_HINT_FILL, EVAS_HINT_FILL);
+	evas_object_size_hint_weight_set(box, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+	evas_object_show(box);
+
+	startHRM = new_button(ad, box, "Start", _sensor_start_cb);
+
+	event_label = elm_label_add(box);
+	elm_object_text_set(event_label, "click start to measure");
+	elm_box_pack_end(box, event_label);
+	evas_object_show(event_label);
+
+	stopHRM = new_button(ad, box, "Stop", _sensor_stop_cb);
+
 }
 
 /** Window --> Conformant --> BaseLayout **/
@@ -346,13 +394,12 @@ static void create_base_gui(appdata_s *ad) {
 			ad);
 
 	/* Conformant */
-	/* Create and initialize evas_conformant.
-	 elm_conformant is mandatory for base gui to have proper size
-	 when indicator or virtual keypad is visible. */
-
 	/*Add a conformant widget to the given parent Elementary (container) object (win)*/
 	ad->conform = elm_conformant_add(ad->win);
 
+	/* Set the indicator mode of the window mode */
+	elm_win_indicator_mode_set(ad->win, ELM_WIN_INDICATOR_SHOW);
+	elm_win_indicator_opacity_set(ad->win, ELM_WIN_INDICATOR_OPAQUE);
 
 	/*[NOT A SIZE ENFORCEMENT] - hint on how a container object should resize a given child within
 	 * its area, primitive EVAS_HINT_EXPAND */
@@ -365,45 +412,39 @@ static void create_base_gui(appdata_s *ad) {
 	/* Make the conformant visible */
 	evas_object_show(ad->conform);
 
-	/* Make the window visible */
-	evas_object_show(ad->win);
-
 	// Create a naviframe
 	ad->navi = elm_naviframe_add(ad->conform);
 	evas_object_size_hint_align_set(ad->navi, EVAS_HINT_FILL, EVAS_HINT_FILL);
 	evas_object_size_hint_weight_set(ad->navi, EVAS_HINT_EXPAND,
 	EVAS_HINT_EXPAND);
-
 	elm_object_content_set(ad->conform, ad->navi);
-
-	//not sure? eext_object_event_callback_add(ad->navi, EEXT_CALLBACK_BACK, eext_naviframe_back_cb, NULL);
-
 	evas_object_show(ad->navi);
 
 	//Lets call new button, testing - bug, replaces label!
 	Evas_Object *box = elm_box_add(ad->conform);
 	elm_object_content_set(ad->conform, box);
-	startHRM = new_button(ad, box, "Start", _sensor_start_cb);
 
+	/* Create the buttons and the labels, register callback to pop window and put behind everything*/
+	_create_new_cd_display(ad, "MainBox", _pop_cb);
+
+	/* Make the window visible after base GUI is set up */
+	evas_object_show(ad->win);
 }
 /*=============================UI EVAS END HERE================================*/
 
 static bool app_create(void *data) {
-	//similar to OnCreate() ???
 
-	/* Hook to take necessary actions before main event loop starts
-	 Initialize UI resources and application's data
-	 If this function returns true, the main loop of application starts
-	 If this function returns false, the application is terminated */
-	//appdata_s *ad = data;
-	//create_base_gui(ad);
 	create_base_gui((appdata_s *) data);
 
 	return true;
 }
 
 static void app_terminate(void *data) {
-	/* Release all resources. */
+	/* Release all resources for sensor. */
+	int error = sensor_listener_stop(listener);
+	error = sensor_destroy_listener(listener);
+
+
 }
 
 int main(int argc, char *argv[]) {
@@ -417,12 +458,6 @@ int main(int argc, char *argv[]) {
 
 	event_callback.create = app_create;
 	event_callback.terminate = app_terminate;
-
-	//char* default_path = app_get_shared_data_path();
-	//path_to_ = model_get_app_data_path();
-	//write_file(test);
-
-	//char* file_write = write_file(path_to_,test);
 
 	ret = ui_app_main(argc, argv, &event_callback, &ad);
 	if (ret != APP_ERROR_NONE) {
