@@ -10,12 +10,13 @@
 #ifdef  LOG_TAG
 #undef  LOG_TAG
 #endif
-#define LOG_TAG "hellotizen"
+#define LOG_TAG "HELLOTIZEN"
 
 #if !defined(PACKAGE)
 #define PACKAGE "org.example.hellotizen"
 #endif
 #define BUFLEN 200
+#define MIN_INTERVAL_S 800
 
 /*=============================UI EVAS START HERE================================*/
 /*Evas is visual stuff -
@@ -30,10 +31,12 @@ typedef struct appdata {
 	Evas_Object *navi;
 
 } appdata_s;
+
 Evas_Object *startHRM;
 Evas_Object *event_label;
 sensor_listener_h listener;
 
+/* Registering a Callback for sensor event  */
 void on_sensor_event(sensor_h sensor, sensor_event_s *event, void *user_data) {
 	//TODO PASS THE TIME STUFF AS PARAMETER, COMP EXPENSIVE!
 	time_t raw_time;
@@ -49,7 +52,7 @@ void on_sensor_event(sensor_h sensor, sensor_event_s *event, void *user_data) {
 
 	case SENSOR_HRM:
 		//print mesurement to console
-		dlog_print(DLOG_INFO, LOG_TAG, "%f", event->values[0]);
+		dlog_print(DLOG_DEBUG, LOG_TAG, "%f", event->values[0]);
 		sprintf(out, "%f", event->values[0]);
 		//elm_object_text_set(event_label, out);
 		//insert timestamp
@@ -66,6 +69,16 @@ void on_sensor_event(sensor_h sensor, sensor_event_s *event, void *user_data) {
 	}
 }
 
+
+void _sensor_accuracy_changed_cb(sensor_h sensor, unsigned long long timestamp,
+		sensor_data_accuracy_e accuracy, void *data) {
+	dlog_print(DLOG_DEBUG, LOG_TAG, "Sensor accuracy callback invoked");
+	sensor_event_s event;
+
+	int error = sensor_listener_read_data(listener, &event);
+	dlog_print(DLOG_DEBUG, LOG_TAG, "accuracy is: %d", event.accuracy);
+}
+
 Evas_Object *new_button(appdata_s *ad, Evas_Object *parrent, char *name,
 		void *action) {
 
@@ -79,13 +92,9 @@ Evas_Object *new_button(appdata_s *ad, Evas_Object *parrent, char *name,
 	evas_object_show(bt);
 	return bt;
 }
-//Evas_object *parrent;
-//button = elm_button_add(parrent);
-//elm_object_text_set(new_button,"Read HRS");
-//elm_object_style_set(new_button, "bottom");
 
-bool model_get_app_data_path(char **path) {
-	*path = NULL;
+char* model_get_app_data_path() {
+	char* path = NULL;
 
 	char *path_tmp = app_get_shared_resource_path();
 	if (!path_tmp) {
@@ -94,21 +103,25 @@ bool model_get_app_data_path(char **path) {
 	}
 
 	*path = strdup(path_tmp);
-	return true;
+	return path_tmp;
 }
 
-static char* write_file(char *filepath, const char* buf) {
+//static char* write_file(char *filepath, const char* buf) {
+void write_file(const char* buf) {
 	char *file = "datafile.txt";
 	//malloc this shit
 
 	//strcat(, file);
-	filepath =
-			"/opt/usr/globalapps/org.example.hellotizen/shared/res/datafilehardcode.txt";
+	//char* filepath ="/opt/usr/globalapps/org.example.hellotizen/shared/res/datafilehardcode.txt";
+	//char filepath =  "datafile.txt";
 	FILE *fp;
-	fp = fopen(filepath, "w");
+	fp =
+			fopen(
+					"/opt/usr/apps/org.example.hellotizen/shared/data/datafilehardcode.txt",
+					"w");
+
 	fputs(buf, fp);
 	fclose(fp);
-	return NULL;
 }
 
 static char* read_file(const char* filepath) {
@@ -130,6 +143,11 @@ static char* read_file(const char* filepath) {
 	fclose(fp);
 	return buf;
 }
+
+void _sensor_stop_cb(void *data, Evas_Object *obj, void *event_info) {
+
+}
+
 void _sensor_start_cb(void *data, Evas_Object *obj, void *event_info) {
 
 	time_t raw_time;
@@ -137,82 +155,68 @@ void _sensor_start_cb(void *data, Evas_Object *obj, void *event_info) {
 
 	void *user_data = NULL;
 	char out[100];
+	int min_interval = 800;
 
-	// Retrieving a Sensor
-	//check if sensor HRM is supported yo
+	bool supported = false;
+
+	/* Define sensor type SENSOR_HRM */
 	sensor_type_e type = SENSOR_HRM;
+
+	/* Create Handle for sensor */
 	sensor_h sensor;
 
-	bool supported;
+	/* Check if sensor is supported */
 	int error = sensor_is_supported(type, &supported);
 	if (error != SENSOR_ERROR_NONE) {
-		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_is_supported error: %d", error);
+		dlog_print(DLOG_ERROR, LOG_TAG,
+				"sensor_is_supported function error: %d", error);
 		return;
 	}
-
 	if (supported) {
 		dlog_print(DLOG_DEBUG, LOG_TAG, "HRM is%s supported",
 				supported ? "" : " not");
-		sprintf(out, "HRM is%s supported", supported ? "" : " not");
-		elm_object_text_set(event_label, out);
+		//TODO [DEL] sprintf(out, "HRM is%s supported", supported ? "" : " not");
+		//TODO [DEL] elm_object_text_set(event_label, out);
 	}
 
-	// Get sensor list
-	//get handle sensor_h for the sensor hrm
+	/* Count of Heart Rate Sensors */
 	int count = 0;
+
+	/* list of Heart Rate Sensors */
 	sensor_h *list;
 
+	/* Get all available sensors of type SENSOR_HRM, add to list */
 	error = sensor_get_sensor_list(type, &list, &count);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_get_sensor_list error: %d",
 				error);
 	} else {
-		dlog_print(DLOG_DEBUG, LOG_TAG, "Number of sensors: %d", count);
+		dlog_print(DLOG_DEBUG, LOG_TAG, "Number of HRM sensors: %d", count);
 		free(list);
 	}
 
+	/* Get the Default Heart Rate Sensor (sensor of type) */
 	error = sensor_get_default_sensor(type, &sensor);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_get_default_sensor error: %d",
 				error);
 		return;
+	} else {
+		dlog_print(DLOG_DEBUG, LOG_TAG,
+				"sensor_get_default_sensor, HRM Sensor Found!");
 	}
 
-	dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_get_default_sensor");
-	// Registering a Sensor Event
+	/* Create a sensor listener */
 	error = sensor_create_listener(sensor, &listener);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_create_listener error: %d",
 				error);
 		return;
 	}
-
 	dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_create_listener");
 
-	int min_interval = 0;
-	error = sensor_get_min_interval(sensor, &min_interval);
-	if (error != SENSOR_ERROR_NONE) {
-		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_get_min_interval error: %d",
-				error);
-		return;
-	}
-
-	dlog_print(DLOG_DEBUG, LOG_TAG, "Minimum interval of the sensor: %d",
-			min_interval);
-
-	//get minimum range
-	float min_range;
-	error = sensor_get_min_range(sensor, &min_range);
-	if (error != SENSOR_ERROR_NONE) {
-		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_get_min_range error: %d",
-				error);
-		return;
-	}
-	dlog_print(DLOG_DEBUG, LOG_TAG, "Minimum range of the sensor: %d",
-			min_range);
-
-	// Callback for sensor value change
-	error = sensor_listener_set_event_cb(listener, min_interval,
+	/* Register a callback to be invoked when sensor events are delivered via a sensor listener [above]  */
+	error = sensor_listener_set_event_cb(listener, MIN_INTERVAL_S,
 			on_sensor_event, user_data);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG,
@@ -222,42 +226,26 @@ void _sensor_start_cb(void *data, Evas_Object *obj, void *event_info) {
 
 	dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_listener_set_event_cb");
 
-//get max range - not showing up properly ?
-	float max_range;
-	error = sensor_get_max_range(sensor, &max_range);
+	/* set the interval for HRM in milliseconds. 100-1000ms */
+	error = sensor_listener_set_interval(listener, MIN_INTERVAL_S);
 	if (error != SENSOR_ERROR_NONE) {
-		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_get_max_range error: %d",
-				error);
+		dlog_print(DLOG_ERROR, LOG_TAG,
+				"sensor_listener_set_interval error: %d", error);
 		return;
 	}
-	dlog_print(DLOG_DEBUG, LOG_TAG, "Maximum range of the sensor: %d",
-			max_range);
+	dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_listener_set_intervals");
 
-	// Registering the Accuracy Changed Callback
-	/** This check the accuracy of th esensor (High, Low etc)
-	 error =  (listener_sensor_accuracy_changed_cb, user_data);
-	 if (error != SENSOR_ERROR_NONE) {
-	 dlog_print(DLOG_ERROR, LOG_TAG,
-	 "sensor_listener_set_accuracy_cb error: %d", error);
-	 return;
-	 }
+	// Registering the Accuracy Changed Callback, not usre how it works as it does only take input. Perhaps sensor calibration?
+	error = sensor_listener_set_accuracy_cb(listener,
+			_sensor_accuracy_changed_cb, user_data);
+	if (error != SENSOR_ERROR_NONE) {
+		dlog_print(DLOG_ERROR, LOG_TAG,
+				"sensor_listener_set_accuracy_cb error: %d", error);
+		return;
+	}
+	dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_listener_set_accuracy_cb");
 
-	 dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_listener_set_accuracy_cb");
-	 **/
-
-	//set the interval for HRM in milliseconds. What is the minimum (50/22ms)?
-	//CURRENTLY ERROR?
-	/**
-	 error = sensor_listener_set_interval(listener, 200);
-	 if (error != SENSOR_ERROR_NONE) {
-	 dlog_print(DLOG_ERROR, LOG_TAG,
-	 "sensor_listener_set_interval error: %d", error);
-	 return;
-	 }
-	 dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_listener_set_intervals");
-	 **/
-
-	//set the sensor always on
+	/* Changes the power-saving behavior of a sensor listener. [ALWAYS ON] */
 	error = sensor_listener_set_option(listener, SENSOR_OPTION_ALWAYS_ON);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_listener_set_option error: %d",
@@ -267,7 +255,7 @@ void _sensor_start_cb(void *data, Evas_Object *obj, void *event_info) {
 
 	dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_listener_set_option");
 
-	//start a sensor listener
+	/* START the sensor listener */
 	error = sensor_listener_start(listener);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_listener_start error: %d",
@@ -277,7 +265,7 @@ void _sensor_start_cb(void *data, Evas_Object *obj, void *event_info) {
 
 	dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_listener_start");
 
-	//capture a sensor event
+	/* Read sensor data (from started listener). */
 	sensor_event_s event;
 	error = sensor_listener_read_data(listener, &event);
 	if (error != SENSOR_ERROR_NONE) {
@@ -287,14 +275,13 @@ void _sensor_start_cb(void *data, Evas_Object *obj, void *event_info) {
 		return;
 	}
 
-	//loop to get the readings - TEST ONLY, MAIN LOOP CB IS AT THE TOP LOL
-	//SENSOR_HRM,
 	switch (type) {
 
 	case SENSOR_HRM:
 		//print mesurement to console
 		dlog_print(DLOG_INFO, LOG_TAG, "%f", event.values[0]);
 		sprintf(out, "%f", event.values[0]);
+
 		//elm_object_text_set(event_label, out);
 		//insert timestamp
 		time(&raw_time);
@@ -309,27 +296,10 @@ void _sensor_start_cb(void *data, Evas_Object *obj, void *event_info) {
 		dlog_print(DLOG_ERROR, LOG_TAG, "Not an HRM event");
 	}
 
-	/** Get sensor details
-	 @ToDo
-
-	 char *name;
-	 char *vendor;
-	 sensor_type_e type;
-	 float min_range;
-	 float max_range;
-	 float resolution;
-	 int min_interval;
-
-	 error = sensor_get_name(listener, &name);
-	 error = sensor_get_vendor(listener, &vendor);
-	 error = sensor_get_type(listener, &type);
-	 error = sensor_get_min_range(listener, &min_range);
-	 error = sensor_get_max_range(listener, &max_range);
-	 error = sensor_get_resolution(listener, &resolution);
-	 error = sensor_get_min_interval(listener, &min_interval);
-	 */
-
 }
+
+/* registering callback method event to call
+ ui_app_exit() when object is deleted */
 static void win_delete_request_cb(void *data, Evas_Object *obj,
 		void *event_info) {
 	ui_app_exit();
@@ -337,50 +307,65 @@ static void win_delete_request_cb(void *data, Evas_Object *obj,
 
 static void win_back_cb(void *data, Evas_Object *obj, void *event_info) {
 	appdata_s *ad = data;
+
 	/* Let window go to hide state. */
 	elm_win_lower(ad->win);
 }
 
+/** Window --> Conformant --> BaseLayout **/
 static void create_base_gui(appdata_s *ad) {
+
+	/* set up policy to exit when last window is closed */
+	/* Using the elm_policy_set() function, make the app close when the last
+	 window closes. */
+	elm_policy_set(ELM_POLICY_QUIT, ELM_POLICY_QUIT_LAST_WINDOW_CLOSED);
+
 	/* Window */
-	/* Create and initialize elm_win.
-	 elm_win is mandatory to manipulate window. */
+
+	/* elm_win_util_standard_add(char * NAME, char * TITLE) */
 	ad->win = elm_win_util_standard_add(PACKAGE, PACKAGE);
+
+	/* Set the Window (win) autodelete state (autodel)
+	 * the window will automatically delete itself when closed */
 	elm_win_autodel_set(ad->win, EINA_TRUE);
 
+	/* Qerry windiw manager if rotation is supported */
 	if (elm_win_wm_rotation_supported_get(ad->win)) {
 		int rots[4] = { 0, 90, 180, 270 };
+
+		/* set the array of available window rotations */
 		elm_win_wm_rotation_available_rotations_set(ad->win,
 				(const int *) (&rots), 4);
 	}
-
+	/* register a callback function to the specified object EVENT (win) [DELETE] */
 	evas_object_smart_callback_add(ad->win, "delete,request",
 			win_delete_request_cb, NULL);
+
+	/* register a callback function to the specified object EVENT (win) [HARDWARE_BACK_BUTTON] */
 	eext_object_event_callback_add(ad->win, EEXT_CALLBACK_BACK, win_back_cb,
 			ad);
 
 	/* Conformant */
-	/* Create and initialize elm_conformant.
+	/* Create and initialize evas_conformant.
 	 elm_conformant is mandatory for base gui to have proper size
 	 when indicator or virtual keypad is visible. */
 
+	/*Add a conformant widget to the given parent Elementary (container) object (win)*/
 	ad->conform = elm_conformant_add(ad->win);
-	elm_win_indicator_mode_set(ad->win, ELM_WIN_INDICATOR_SHOW);
-	elm_win_indicator_opacity_set(ad->win, ELM_WIN_INDICATOR_OPAQUE);
+
+
+	/*[NOT A SIZE ENFORCEMENT] - hint on how a container object should resize a given child within
+	 * its area, primitive EVAS_HINT_EXPAND */
 	evas_object_size_hint_weight_set(ad->conform, EVAS_HINT_EXPAND,
 	EVAS_HINT_EXPAND);
+
+	/* adds subobj as a resize object of the window obj */
 	elm_win_resize_object_add(ad->win, ad->conform);
+
+	/* Make the conformant visible */
 	evas_object_show(ad->conform);
 
-	/* Label
-	 * Create an actual view of the base gui.
-	 Modify this part to change the view.
-	 ad->label = elm_label_add(ad->conform);
-	 elm_object_text_set(ad->label, "<align=center>Hello Tizen</align>");
-	 evas_object_size_hint_weight_set(ad->label, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-	 elm_object_content_set(ad->conform, ad->label);
-	 */
-	/* Show window after base gui is set up */
+	/* Make the window visible */
 	evas_object_show(ad->win);
 
 	// Create a naviframe
@@ -390,6 +375,9 @@ static void create_base_gui(appdata_s *ad) {
 	EVAS_HINT_EXPAND);
 
 	elm_object_content_set(ad->conform, ad->navi);
+
+	//not sure? eext_object_event_callback_add(ad->navi, EEXT_CALLBACK_BACK, eext_naviframe_back_cb, NULL);
+
 	evas_object_show(ad->navi);
 
 	//Lets call new button, testing - bug, replaces label!
@@ -430,9 +418,9 @@ int main(int argc, char *argv[]) {
 	event_callback.create = app_create;
 	event_callback.terminate = app_terminate;
 
-	//char * default_path = app_get_shared_data_path();
-	//write_file(default_path,test);
-	model_get_app_data_path(&path_to_);
+	//char* default_path = app_get_shared_data_path();
+	//path_to_ = model_get_app_data_path();
+	//write_file(test);
 
 	//char* file_write = write_file(path_to_,test);
 
