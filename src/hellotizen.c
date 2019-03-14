@@ -35,7 +35,11 @@ typedef struct appdata {
 Evas_Object *startHRM;
 Evas_Object *stopHRM;
 
-Evas_Object *event_label;
+Evas_Object *HeartRate_event_label;
+Evas_Object *Accuracy_event_label;
+Evas_Object *Accuracy_event_label_data;
+
+
 sensor_listener_h listener;
 
 Evas_Object *new_button(appdata_s *ad, Evas_Object *parrent, char *name,
@@ -115,20 +119,19 @@ void on_sensor_event(sensor_h sensor, sensor_event_s *event, void *user_data) {
 
 	switch (type) {
 
-	case SENSOR_HRM:
 		//print mesurement to console
-		dlog_print(DLOG_DEBUG, LOG_TAG, "%f", event->values[0]);
-		sprintf(out, "%f", event->values[0]);
-		//elm_object_text_set(event_label, out);
-		//insert timestamp
-		time(&raw_time);
-		time_info = localtime(&raw_time);
-		dlog_print(DLOG_INFO, LOG_TAG,
-				"Current time: %d:%s%d:%ds /Value HRM = %f", time_info->tm_hour,
-				time_info->tm_min < 10 ? "0" : "", time_info->tm_min,
-				time_info->tm_sec, event->values[0]);
+    case SENSOR_HRM:
+    	dlog_print(DLOG_INFO, LOG_TAG, "Time: %llu, HR: %d, Accuracy: %d" ,event->timestamp, event->values[0], event->accuracy);
+    	char values[100];
+    	sprintf(values,"%f", event->values[0]);
+    	/*
+    	char accuracy[100];
+    	sprintf(accuracy,"%d", event->accuracy);
+    	elm_object_text_set(Accuracy_event_label, accuracy);
+*/
 
-		break;
+    	elm_object_text_set(HeartRate_event_label, values);
+    	break;
 	default:
 		dlog_print(DLOG_ERROR, LOG_TAG, "Not an HRM event");
 	}
@@ -141,6 +144,9 @@ void _sensor_accuracy_changed_cb(sensor_h sensor, unsigned long long timestamp,
 
 	int error = sensor_listener_read_data(listener, &event);
 	dlog_print(DLOG_DEBUG, LOG_TAG, "accuracy is: %d", event.accuracy);
+	char accuracy1[100];
+	sprintf(accuracy1,"%d", event.accuracy);
+	elm_object_text_set(Accuracy_event_label, accuracy1);
 }
 
 void _sensor_stop_cb(void *data, Evas_Object *obj, void *event_info) {
@@ -300,7 +306,7 @@ void _sensor_start_cb(void *data, Evas_Object *obj, void *event_info) {
 		dlog_print(DLOG_INFO, LOG_TAG, "%f", event.values[0]);
 		sprintf(out, "%f", event.values[0]);
 
-		//elm_object_text_set(event_label, out);
+		//elm_object_text_set(HeartRate_event_label, out);
 		//insert timestamp
 		time(&raw_time);
 		time_info = localtime(&raw_time);
@@ -351,10 +357,24 @@ void _create_new_cd_display(appdata_s *ad, char *name, void *cb) {
 
 	startHRM = new_button(ad, box, "Start", _sensor_start_cb);
 
-	event_label = elm_label_add(box);
-	elm_object_text_set(event_label, "click start to measure");
-	elm_box_pack_end(box, event_label);
-	evas_object_show(event_label);
+	HeartRate_event_label = elm_label_add(box);
+	Accuracy_event_label = elm_label_add(box);
+	Accuracy_event_label_data = elm_label_add(box);
+
+
+	elm_object_text_set(HeartRate_event_label, "click start to measure");
+	elm_object_text_set(Accuracy_event_label, "Accuracy:");
+	elm_object_text_set(Accuracy_event_label_data, "test");
+
+	elm_box_pack_end(box, HeartRate_event_label);
+	elm_box_pack_end(box, Accuracy_event_label);
+
+	evas_object_size_hint_align_set(Accuracy_event_label,0.1, -1.0);
+
+
+	evas_object_show(HeartRate_event_label);
+	evas_object_show(Accuracy_event_label);
+
 
 	stopHRM = new_button(ad, box, "Stop", _sensor_stop_cb);
 
