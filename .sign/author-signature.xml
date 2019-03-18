@@ -4,7 +4,11 @@
 <SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"></SignatureMethod>
 <Reference URI="bin%2Fhellotizen">
 <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"></DigestMethod>
-<DigestValue>GKOL+R2gXTBAtJ36EZzNc96f4UnhXN+n/nqecixhFTA=</DigestValue>
+<DigestValue>nPlTg5/JiX4eTC+JJ2u9PWZIsnNJSOAXBSHNI3hf9HI=</DigestValue>
+</Reference>
+<Reference URI="res%2Faccesoryservice.xml">
+<DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"></DigestMethod>
+<DigestValue>/mWJwkBpv3u6QKfQ9tREVtCvT7HEkyBiIbpUzzEet9M=</DigestValue>
 </Reference>
 <Reference URI="shared%2Fres%2Fhellotizen.png">
 <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"></DigestMethod>
@@ -12,7 +16,7 @@
 </Reference>
 <Reference URI="tizen-manifest.xml">
 <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"></DigestMethod>
-<DigestValue>DF5310TTiyKy3IJQQf/2PG9f3MfBKc4I9UekZOPDlWw=</DigestValue>
+<DigestValue>XvtvdQ/GebQejsZAJA/qpsPcMDVR55daz6zLI+eTbas=</DigestValue>
 </Reference>
 <Reference URI="#prop">
 <Transforms>
@@ -23,11 +27,11 @@
 </Reference>
 </SignedInfo>
 <SignatureValue>
-BbmfuUaaYr7Jex3mvYnkhWF3eiiLfGcK06fsskcPhMF2wdxEg9uxs7h0/QE/kFjFoAMUibdKbDML
-Qb+y5UxMtJwtTFQ4c7AVYRoN2kAk53gsxos+X/bn/maFkeghGle9/bUsIC7Vxp+BMV3zrhLwPxQk
-Y7pBg0BPygxqLhWkQ2lGKJnl4Rpw5UBATjtHE+pF2g2aQht2NirZ9KE3IccO36I2Lm7W6s5pATYT
-1IsNNUCQPcKvBLGRlaBJ4Y9n+ErQ3PbPVGFC1vFn1IMPP0TiuStORDCTZPLqkoO7esuwlJerhmqs
-MWdZcqhdvUu1YgAJrxnSvOedAq7KCDUqxbk72w==
+K98dC2lmsxcjKE+T8hnFgB59PbuH9WRcXSOqnV7QcO2M5ofvBzaPLIQl+bClibp6laYYqA5m67qZ
+S84L/0v7EIkE0LnFngtraS2veyPwdpFDoDVMi2/8JnfpdEd9fahO9QdkHCmSq4pWwYpySZzVYYw7
+PytOumONblsaIuQRRXjgIaHnHRNYibICVmd3IWxVHNKqfBuwR7dP8K4+dalwM41+i5T9wSMKyZcP
+7+AA5eeVahCZ/3QnMnLh2VyrE28uqGLvceoLfV6AJldto9lsJphPc6qm3HCga8aiXcqaohnstGzM
+QsxrufCAEOui3/c3Fc2oJvdTqbsnhmxevIer+w==
 </SignatureValue>
 <KeyInfo>
 <X509Data>

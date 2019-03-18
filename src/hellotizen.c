@@ -7,6 +7,9 @@
 #include <dlog.h>
 #include <time.h>
 
+
+#include "hellotizen.h"
+
 #ifdef  LOG_TAG
 #undef  LOG_TAG
 #endif
@@ -172,7 +175,7 @@ void _sensor_stop_cb(void *data, Evas_Object *obj, void *event_info) {
 	elm_object_disabled_set(stopHRM, EINA_TRUE);
 }
 
-void _sensor_start_cb(void *data, Evas_Object *obj, void *event_info) {
+void _sensor_start_cb() {
 
 	time_t raw_time;
 	struct tm* time_info;
@@ -332,12 +335,25 @@ static void win_delete_request_cb(void *data, Evas_Object *obj,
 	ui_app_exit();
 }
 
+int read_sensor_data(void *pointer){
+	_sensor_start_cb();
+	sensor_event_s event;
+	int error = sensor_listener_read_data(listener, &event);
+	int value = event.values[0];
+	return value;
+}
 static void win_back_cb(void *data, Evas_Object *obj, void *event_info) {
 	appdata_s *ad = data;
 
 	/* Let window go to hide state. */
 	elm_win_lower(ad->win);
 	ui_app_exit();
+}
+
+void update_ui(char *data)
+{
+	dlog_print(DLOG_INFO, LOG_TAG, "Updating UI with data %s", data);
+	//elm_object_text_set(object->naviframe, data);
 }
 
 Eina_Bool _pop_cb(void *data, Elm_Object_Item *item) {
@@ -455,6 +471,7 @@ static void create_base_gui(appdata_s *ad) {
 static bool app_create(void *data) {
 
 	create_base_gui((appdata_s *) data);
+	initialize_sap();
 
 	return true;
 }

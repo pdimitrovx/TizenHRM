@@ -4,11 +4,15 @@
 <SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"></SignatureMethod>
 <Reference URI="author-signature.xml">
 <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"></DigestMethod>
-<DigestValue>ERY1l9MFw6vUN4/ZVDZ+CVfWmFk7S2kBmFkU5MoJEnc=</DigestValue>
+<DigestValue>xHXjVUifxlrNBb8vhduMcpQZqaRmJn5VH+F8CsAYkEo=</DigestValue>
 </Reference>
 <Reference URI="bin%2Fhellotizen">
 <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"></DigestMethod>
-<DigestValue>GKOL+R2gXTBAtJ36EZzNc96f4UnhXN+n/nqecixhFTA=</DigestValue>
+<DigestValue>nPlTg5/JiX4eTC+JJ2u9PWZIsnNJSOAXBSHNI3hf9HI=</DigestValue>
+</Reference>
+<Reference URI="res%2Faccesoryservice.xml">
+<DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"></DigestMethod>
+<DigestValue>/mWJwkBpv3u6QKfQ9tREVtCvT7HEkyBiIbpUzzEet9M=</DigestValue>
 </Reference>
 <Reference URI="shared%2Fres%2Fhellotizen.png">
 <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"></DigestMethod>
@@ -16,7 +20,7 @@
 </Reference>
 <Reference URI="tizen-manifest.xml">
 <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"></DigestMethod>
-<DigestValue>DF5310TTiyKy3IJQQf/2PG9f3MfBKc4I9UekZOPDlWw=</DigestValue>
+<DigestValue>XvtvdQ/GebQejsZAJA/qpsPcMDVR55daz6zLI+eTbas=</DigestValue>
 </Reference>
 <Reference URI="#prop">
 <Transforms>
@@ -27,11 +31,11 @@
 </Reference>
 </SignedInfo>
 <SignatureValue>
-R3ouLEasEMsaPModQPy1JX73jKcqn2VLb8DSNgxi+mjiPirsGWv3GiVMKRiw9QTWIis39eUuOsze
-Z4VkL/3dYvewMB1WEDR7XAruzEJxtukyUV7i3P27cdHAHeL7zumwk27Tlz3U/2MF2/cSKUgzNzvp
-g9k0GPe9RiUlOj6QAKuPX0iAEAfGFxz9I4T7nkfkmQtTXJTSNupP3mub1nG0rO12H5b0sgaWCF7I
-XDUiaROS0GAs29nyCNqjqqsidP7o1LFvM7rYtfH+qNUCJgknWny5tALZTzSaVLKsAXyk9tGB483B
-fbpCggs4T5aPCDJfXEXGsidGa0CKntbgXO6X/g==
+VR6O4Tt7xumCAuZGk9jbshvoYij9tgTm+UW6Iv29y1DKRtdNG206/NDfdzMkTcW9SWGqpMt9HeYz
+GVMqkGtDj7GPfbpzeHfG4EGYF7EF1fe864/XXJizmxFYLktmBoGN6m/e5PNGIvJfBxDUwZm6VgQ5
+BnVCamEVgjLd1SdntSYeBSjXetC4UiPj2rd9XwclVW1yHPZIPVbpdoHP89icVQv45v0XkAcfQcAk
+JeGpeSRRGWLsP/YLDABe8jZ+QJWm8b67ml18LUVbL0f408WnUPBifgz2e3eZKv42rIJKDg1I2x+c
+NOWsyJa0MPNxFn/lWkhtfUydYjT/AvoXTxUigg==
 </SignatureValue>
 <KeyInfo>
 <X509Data>
