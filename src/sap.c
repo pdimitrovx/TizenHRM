@@ -204,9 +204,9 @@ gboolean agent_initialize() {
 
 void initialize_sap() {
 	sap_agent_h agent = NULL;
-
-	int error = sap_agent_create(&agent);
-	if (error == NULL) {
+int error = 0;
+	error = sap_agent_create(&agent);
+	if (error == 0) {
 		dlog_print(DLOG_DEBUG, "debugsap", "SAP >> No response");
 	} else {
 		switch (error) {
