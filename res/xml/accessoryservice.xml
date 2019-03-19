@@ -1,14 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <resources>
-	<application name="MyApplication">
-		<serviceProfile id="/org/example/myapp/my_message" name="MyMessage"
-		                role="consumer"  version="1.0">
+	<application name="org.example.hellotizen">
+		<serviceProfile id="/sample/hellotizen" name="hellotizen"
+			role="provider" autoLaunchAppId="org.example.hellotizen" version="1.0">
 			<supportedTransports>
-				<transport type="TRANSPORT_BT"/>
-				<transport type="TRANSPORT_WIFI"/>
+				<transport type="TRANSPORT_BT" />
+				<transport type="TRANSPORT_WIFI" />
 			</supportedTransports>
-			<serviceChannel id="110" dataRate="low" priority="low"
-			                reliability="enable">
-			</serviceChannel>
+			<supportedFeatures>
+				<feature type="message" />
+			</supportedFeatures>
 		</serviceProfile>
 	</application>
 </resources>
