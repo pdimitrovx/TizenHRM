@@ -4,6 +4,12 @@
 #include <sap_message_exchange.h>
 #include <time.h>
 
+
+#ifdef  LOG_TAG
+#undef  LOG_TAG
+#endif
+#define LOG_TAG "SAP_debug"
+
 #define MEX_PROFILE_ID "hellotizen"
 
 struct priv {
@@ -117,6 +123,7 @@ static gboolean _find_peer_agent() {
 
 static void on_agent_initialized(sap_agent_h agent,
 		sap_agent_initialized_result_e result, void *user_data) {
+
 	switch (result) {
 	case SAP_AGENT_INITIALIZED_RESULT_SUCCESS:
 		dlog_print(DLOG_INFO, LOG_TAG, "agent is initialized");
@@ -184,47 +191,56 @@ static void on_device_status_changed(sap_device_status_e status,
 		break;
 	}
 }
-
-
+void waitFor(unsigned int secs) {
+	unsigned int retTime = time(0) + secs;   // Get finishing time.
+	while (time(0) < retTime)
+		;               // Loop until it arrives.
+}
 
 gboolean agent_initialize() {
-	int result = 0;
+	int result = 9;
 	int attempts = 0;
-	do {
+
+	for (attempts = 0; attempts < 15; attempts++) {
+		if (result!=SAP_RESULT_SUCCESS){
+		waitFor(1);
+		//((result != SAP_RESULT_SUCCESS))
 		result = sap_agent_initialize(priv_data.agent, MEX_PROFILE_ID,
 				SAP_AGENT_ROLE_PROVIDER, on_agent_initialized, NULL);
-		dlog_print(DLOG_DEBUG, "debugsap",
+		dlog_print(DLOG_DEBUG, LOG_TAG,
 				"SAP >>> sap_agent_initialize() >>> %d", result);
-		//waitFor(1); //added delay 1s
-		attempts++; //60s~ timeout
-
-	} while (result != SAP_RESULT_SUCCESS);
+		}
+	}
 
 	if (result != SAP_RESULT_SUCCESS) {
+		dlog_print(DLOG_DEBUG, LOG_TAG,
+				"SAP >>> sap_agent_initialize() >>> ERROR/timeouts ");
 		return FALSE;
-		dlog_print(DLOG_DEBUG, "debugsap",
-				"SAP >>> sap_agent_initialize() >>> Timeout 60s ");
 	} else
 		return TRUE;
 }
 
 void initialize_sap() {
+	bool is_agent_initialized = FALSE;
 	sap_agent_h agent = NULL;
 
 	sap_agent_create(&agent);
 
 	if (agent == NULL)
-		dlog_print(DLOG_DEBUG, "debugsap", "ERROR in creating SAP agent");
+		dlog_print(DLOG_DEBUG, LOG_TAG, "ERROR in creating SAP agent");
 	else {
-		dlog_print(DLOG_DEBUG, "debugsap", "Successfully created SAP agent");
-		dlog_print(DLOG_DEBUG, "debugsap",
+		dlog_print(DLOG_DEBUG, LOG_TAG, "Successfully created SAP agent");
+		dlog_print(DLOG_DEBUG, LOG_TAG,
 				"Beginning initialization of SAP agent...");
 
 		priv_data.agent = agent;
 
 		sap_set_device_status_changed_cb(on_device_status_changed, NULL);
 
-		agent_initialize();
+		is_agent_initialized = agent_initialize();
+		if (is_agent_initialized){
+			dlog_print(DLOG_DEBUG, LOG_TAG, "Succesfully initialized SAP Agent!");
+		}
 
 	}
 

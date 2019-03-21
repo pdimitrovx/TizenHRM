@@ -10,12 +10,6 @@
 
 #define NUM_OF_ITEMS 5
 
-#ifdef  LOG_TAG
-#undef  LOG_TAG
-#endif
-#define LOG_TAG "hellotizen"
-
-
 void initialize_sap();
 int read_sensor_data();
 void update_ui(char *data);
