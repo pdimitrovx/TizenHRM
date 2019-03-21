@@ -4,7 +4,7 @@
 #include <sap_message_exchange.h>
 #include <time.h>
 
-#define MEX_PROFILE_ID "/sample/hellotizen"
+#define MEX_PROFILE_ID "hellotizen"
 
 struct priv {
 	sap_agent_h agent;
@@ -63,7 +63,7 @@ void mex_data_received_cb(sap_peer_agent_h peer_agent,
 	priv_data.peer_agent = peer_agent;
 
 	mex_send(buffer, payload_length, FALSE);
-
+	update_ui(msg);
 	g_free(msg);
 }
 
@@ -185,68 +185,47 @@ static void on_device_status_changed(sap_device_status_e status,
 	}
 }
 
-void waitFor(unsigned int secs) {
-	unsigned int retTime = time(0) + secs;   // Get finishing time.
-	while (time(0) < retTime)
-		;               // Loop until it arrives.
-}
+
 
 gboolean agent_initialize() {
 	int result = 0;
 	int attempts = 0;
-
 	do {
 		result = sap_agent_initialize(priv_data.agent, MEX_PROFILE_ID,
 				SAP_AGENT_ROLE_PROVIDER, on_agent_initialized, NULL);
 		dlog_print(DLOG_DEBUG, "debugsap",
-				"SAP >>> getRegisteredServiceAgent() >>> %d", result);
-		waitFor(1); //added delay if it fails. Maybe add a number of attempts?
+				"SAP >>> sap_agent_initialize() >>> %d", result);
+		//waitFor(1); //added delay 1s
 		attempts++; //60s~ timeout
-	} while (attempts < 20);
+
+	} while (result != SAP_RESULT_SUCCESS);
+
 	if (result != SAP_RESULT_SUCCESS) {
-		dlog_print(DLOG_DEBUG, "debugsap",
-				"SAP >>> getRegisteredServiceAgent() >>> TIMEOUT ");
 		return FALSE;
-	} else {
+		dlog_print(DLOG_DEBUG, "debugsap",
+				"SAP >>> sap_agent_initialize() >>> Timeout 60s ");
+	} else
 		return TRUE;
-
-	}
-
 }
 
 void initialize_sap() {
 	sap_agent_h agent = NULL;
-	int error = 0;
-	error = sap_agent_create(&agent);
 
-	switch (error) {
-	case SAP_RESULT_SUCCESS:
-		dlog_print(DLOG_DEBUG, "debugsap",
-				"SAP >> SUCCESFULLY CREATED SAP AGENT");
-		break;
+	sap_agent_create(&agent);
 
-	case SAP_RESULT_PERMISSION_DENIED:
+	if (agent == NULL)
+		dlog_print(DLOG_DEBUG, "debugsap", "ERROR in creating SAP agent");
+	else {
+		dlog_print(DLOG_DEBUG, "debugsap", "Successfully created SAP agent");
 		dlog_print(DLOG_DEBUG, "debugsap",
-				"SAP >> Create agent permission denied");
-		break;
-	case SAP_RESULT_FAILURE:
-		dlog_print(DLOG_DEBUG, "debugsap",
-				"SAP >> Create agent Result Failure");
-		break;
-	default:
-		dlog_print(DLOG_DEBUG, "debugsap", "SAP >> Unknown error");
-		break;
+				"Beginning initialization of SAP agent...");
+
+		priv_data.agent = agent;
+
+		sap_set_device_status_changed_cb(on_device_status_changed, NULL);
+
+		agent_initialize();
 
 	}
 
-	if (agent == NULL)
-		dlog_print(DLOG_DEBUG, LOG_TAG, "ERROR in creating agent");
-	else
-		dlog_print(DLOG_DEBUG, LOG_TAG, "successfully created sap agent");
-
-	priv_data.agent = agent;
-
-	//sap_set_device_status_changed_cb(on_device_status_changed, NULL);
-
-	agent_initialize();
 }

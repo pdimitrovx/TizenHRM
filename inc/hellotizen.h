@@ -15,13 +15,15 @@
 #endif
 #define LOG_TAG "hellotizen"
 
-#if !defined(PACKAGE)
-#define PACKAGE "org.example.hellotizen"
-#endif
 
 void initialize_sap();
 int read_sensor_data();
 void update_ui(char *data);
+
+#if !defined(PACKAGE)
+#define PACKAGE "org.example.hellotizen"
+#endif
+
 
 #endif /* __hellotizen_H__ */
 
