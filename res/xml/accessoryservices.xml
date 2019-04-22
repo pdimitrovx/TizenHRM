@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources>
 	<application name="org.example.hellotizen">
-		<serviceProfile id="hellotizen" name="hellotizen"
+		<serviceProfile id="/sample/hellomessage" name="TizenCommunication"
 			role="provider" autoLaunchAppId="org.example.hellotizen" version="1.0">
 			<supportedTransports>
 				<transport type="TRANSPORT_BT" />

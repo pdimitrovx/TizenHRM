@@ -11,8 +11,9 @@
 #define NUM_OF_ITEMS 5
 
 void initialize_sap();
-int read_sensor_data();
+float read_sensor_data();
 void update_ui(char *data);
+void mex_send();
 
 #if !defined(PACKAGE)
 #define PACKAGE "org.example.hellotizen"

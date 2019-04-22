@@ -6,7 +6,7 @@
 #include <sensor.h>
 #include <dlog.h>
 #include <time.h>
-
+#include <glib.h>
 
 #include "hellotizen.h"
 
@@ -19,7 +19,7 @@
 #define PACKAGE "org.example.hellotizen"
 #endif
 #define BUFLEN 200
-#define MIN_INTERVAL_S 800
+#define MIN_INTERVAL_S 200
 
 /*=============================UI EVAS START HERE================================*/
 /*Evas is visual stuff -
@@ -41,7 +41,6 @@ Evas_Object *stopHRM;
 Evas_Object *HeartRate_event_label;
 Evas_Object *Accuracy_event_label;
 Evas_Object *Accuracy_event_label_data;
-
 
 sensor_listener_h listener;
 
@@ -113,6 +112,8 @@ void on_sensor_event(sensor_h sensor, sensor_event_s *event, void *user_data) {
 	//TODO PASS THE TIME STUFF AS PARAMETER, COMP EXPENSIVE!
 	time_t raw_time;
 	struct tm* time_info;
+	time(&raw_time);
+	time_info = localtime(&raw_time);
 
 	char out[100];
 
@@ -122,19 +123,54 @@ void on_sensor_event(sensor_h sensor, sensor_event_s *event, void *user_data) {
 
 	switch (type) {
 
-		//print mesurement to console
-    case SENSOR_HRM:
-    	dlog_print(DLOG_INFO, LOG_TAG, "Time: %llu, HR: %d, Accuracy: %d" ,event->timestamp, event->values[0], event->accuracy);
-    	char values[100];
-    	sprintf(values,"%f", event->values[0]);
-    	/*
-    	char accuracy[100];
-    	sprintf(accuracy,"%d", event->accuracy);
-    	elm_object_text_set(Accuracy_event_label, accuracy);
-*/
+	//print mesurement to console
+	case SENSOR_HRM:
+		dlog_print(DLOG_INFO, LOG_TAG, "Time: %llu, HR: %d, Accuracy: %d",
+				event->timestamp, event->values[0], event->accuracy);
+		char values[100];
+		char acc[100];
+		char timestamp[100];
+		char hour[10];
+		char minute[10];
+		char second[10];
+		//char payload[400];
+		sprintf(values, "%f", event->values[0]);
+		sprintf(acc, "%d", event->accuracy);
+		sprintf(timestamp, "%llu", event->timestamp);
+		sprintf(hour, "%d", time_info->tm_hour);
+		sprintf(minute, "%d", time_info->tm_min);
+		sprintf(second, "%d", time_info->tm_sec);
 
-    	elm_object_text_set(HeartRate_event_label, values);
-    	break;
+
+
+		//%d:%s%d:%ds time_info->tm_hour, time_info->tm_min < 10 ? "0" : "", time_info->tm_min, time_info->tm_sec,
+
+		//snprintf(buf, sizeof buf, "%s%s%s%s", values, acc, timestamp, str4);
+		strcat(values, ":");
+		strcat(values, acc);
+		strcat(values, ":");
+		strcat(values, hour);
+		strcat(values, ":");
+		strcat(values, minute);
+		strcat(values, ":");
+		strcat(values, second);
+		//strcat(values, ":");
+
+
+
+		/*
+		 char accuracy[100];
+		 sprintf(accuracy,"%d", event->accuracy);
+		 elm_object_text_set(Accuracy_event_label, accuracy);
+		 */
+		gboolean is_secured = false;
+		int length = 40;
+
+		elm_object_text_set(HeartRate_event_label, values);
+		elm_object_text_set(Accuracy_event_label, acc);
+		mex_send(values, length, is_secured);
+
+		break;
 	default:
 		dlog_print(DLOG_ERROR, LOG_TAG, "Not an HRM event");
 	}
@@ -146,10 +182,12 @@ void _sensor_accuracy_changed_cb(sensor_h sensor, unsigned long long timestamp,
 	sensor_event_s event;
 
 	int error = sensor_listener_read_data(listener, &event);
-	dlog_print(DLOG_DEBUG, LOG_TAG, "accuracy is: %d", event.accuracy);
+	dlog_print(DLOG_DEBUG, LOG_TAG,
+			"FROM CALLBACK sensor accuracy changed at: %lu accuracy is: %d",
+			timestamp, event.accuracy);
 	char accuracy1[100];
-	sprintf(accuracy1,"%d", event.accuracy);
-	elm_object_text_set(Accuracy_event_label, accuracy1);
+	sprintf(accuracy1, "%d", event.accuracy);
+	//elm_object_text_set(Accuracy_event_label, accuracy1);
 }
 
 void _sensor_stop_cb(void *data, Evas_Object *obj, void *event_info) {
@@ -182,7 +220,6 @@ void _sensor_start_cb() {
 
 	void *user_data = NULL;
 	char out[100];
-	int min_interval = 800;
 
 	bool supported = false;
 
@@ -262,13 +299,14 @@ void _sensor_start_cb() {
 	}
 	dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_listener_set_intervals");
 
-	// Registering the Accuracy Changed Callback, not usre how it works as it does only take input. Perhaps sensor calibration?
+	// Registering the Accuracy Changed Callback
 	error = sensor_listener_set_accuracy_cb(listener,
 			_sensor_accuracy_changed_cb, user_data);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG,
 				"sensor_listener_set_accuracy_cb error: %d", error);
 		return;
+
 	}
 	dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_listener_set_accuracy_cb");
 
@@ -313,6 +351,7 @@ void _sensor_start_cb() {
 		//insert timestamp
 		time(&raw_time);
 		time_info = localtime(&raw_time);
+		//%d:%s%d:%ds time_info->tm_hour, time_info->tm_min < 10 ? "0" : "", time_info->tm_min, time_info->tm_sec,
 		/*dlog_print(DLOG_INFO, LOG_TAG,
 		 "Current time: %d:%s%d:%ds /Value HRM = %f", time_info->tm_hour,
 		 time_info->tm_min < 10 ? "0" : "", time_info->tm_min, time_info->tm_sec, event.values[0]
@@ -335,11 +374,15 @@ static void win_delete_request_cb(void *data, Evas_Object *obj,
 	ui_app_exit();
 }
 
-int read_sensor_data(void *pointer){
+float read_sensor_data(void *pointer) {
+	void *data;
+	Evas_Object *obj;
+	void *event_info;
 	_sensor_start_cb();
 	sensor_event_s event;
 	int error = sensor_listener_read_data(listener, &event);
-	int value = event.values[0];
+	float value = event.values[0];
+	//_sensor_stop_cb(data, obj, event_info);
 	return value;
 }
 static void win_back_cb(void *data, Evas_Object *obj, void *event_info) {
@@ -350,8 +393,7 @@ static void win_back_cb(void *data, Evas_Object *obj, void *event_info) {
 	ui_app_exit();
 }
 
-void update_ui(char *data)
-{
+void update_ui(char *data) {
 	dlog_print(DLOG_INFO, LOG_TAG, "Updating UI with data %s", data);
 	//elm_object_text_set(object->naviframe, data);
 }
@@ -377,20 +419,17 @@ void _create_new_cd_display(appdata_s *ad, char *name, void *cb) {
 	Accuracy_event_label = elm_label_add(box);
 	Accuracy_event_label_data = elm_label_add(box);
 
-
 	elm_object_text_set(HeartRate_event_label, "click start to measure");
 	elm_object_text_set(Accuracy_event_label, "Accuracy:");
-	elm_object_text_set(Accuracy_event_label_data, "test");
+	elm_object_text_set(Accuracy_event_label_data, "123");
 
 	elm_box_pack_end(box, HeartRate_event_label);
 	elm_box_pack_end(box, Accuracy_event_label);
 
-	evas_object_size_hint_align_set(Accuracy_event_label,0.1, -1.0);
-
+	evas_object_size_hint_align_set(Accuracy_event_label, 0.1, -1.0);
 
 	evas_object_show(HeartRate_event_label);
 	evas_object_show(Accuracy_event_label);
-
 
 	stopHRM = new_button(ad, box, "Stop", _sensor_stop_cb);
 
@@ -480,7 +519,6 @@ static void app_terminate(void *data) {
 	/* Release all resources for sensor. */
 	int error = sensor_listener_stop(listener);
 	error = sensor_destroy_listener(listener);
-
 
 }
 

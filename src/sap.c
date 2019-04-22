@@ -10,7 +10,7 @@
 #endif
 #define LOG_TAG "SAP_debug"
 
-#define MEX_PROFILE_ID "hellotizen"
+#define MEX_PROFILE_ID "/sample/hellomessage"
 
 struct priv {
 	sap_agent_h agent;
@@ -19,6 +19,12 @@ struct priv {
 
 gboolean is_agent_added = FALSE;
 static struct priv priv_data = { 0 };
+
+void waitFor(unsigned int secs) {
+	unsigned int retTime = time(0) + secs;   // Get finishing time.
+	while (time(0) < retTime)
+		;               // Loop until it arrives.
+}
 
 void mex_message_delivery_status_cb(sap_peer_agent_h peer_agent_h,
 		int transaction_id, sap_connectionless_transfer_status_e status,
@@ -60,17 +66,31 @@ void mex_send(char *message, int length, gboolean is_secured) {
 void mex_data_received_cb(sap_peer_agent_h peer_agent,
 		unsigned int payload_length, void *buffer, void *user_data) {
 
+	unsigned int response_payload_length;
 	//char *values = read_sensor_data();
 
+	/*
+	 * g_strdup_printf()
+	 * Similar to the standard C sprintf() function but safer, since it calculates
+	 * the maximum space required and allocates memory to hold the result.
+	 * The returned string should be freed with g_free() when no longer needed.
+	 */
 	char *msg = g_strdup_printf("Received data: %s", (char *) buffer);
 	dlog_print(DLOG_INFO, LOG_TAG, "message:%s, length:%d", buffer,
 			payload_length);
 
 	priv_data.peer_agent = peer_agent;
 
-	mex_send(buffer, payload_length, FALSE);
+	//float values = read_sensor_data();
+	//char *values_c ;
+	//sprintf(values_c, "%f", values);
+	char *msg2 = g_strdup_printf("Petar Data %s", (char *) msg);
+	response_payload_length = strlen(msg2);
+	mex_send(msg2, response_payload_length, FALSE);
 	update_ui(msg);
 	g_free(msg);
+	g_free(msg2);
+//https://www.codingame.com/playgrounds/14213/how-to-play-with-strings-in-c/string-split
 }
 
 void on_peer_agent_updated(sap_peer_agent_h peer_agent,
@@ -191,17 +211,12 @@ static void on_device_status_changed(sap_device_status_e status,
 		break;
 	}
 }
-void waitFor(unsigned int secs) {
-	unsigned int retTime = time(0) + secs;   // Get finishing time.
-	while (time(0) < retTime)
-		;               // Loop until it arrives.
-}
 
 gboolean agent_initialize() {
 	int result = 9;
 	int attempts = 0;
 
-	for (attempts = 0; attempts < 15; attempts++) {
+	for (attempts = 0; attempts < 150; attempts++) {
 		if (result!=SAP_RESULT_SUCCESS){
 		waitFor(1);
 		//((result != SAP_RESULT_SUCCESS))
