@@ -19,7 +19,7 @@
 #define PACKAGE "org.example.hellotizen"
 #endif
 #define BUFLEN 200
-#define MIN_INTERVAL_S 200
+#define MIN_INTERVAL_S 500
 #define DEFAULT_MEASURE_DURATION 15
 
 /*=============================UI EVAS START HERE================================*/
@@ -56,7 +56,6 @@ Evas_Object *new_button(appdata_s *ad, Evas_Object *parrent, char *name,
 	return bt;
 }
 
-
 /* Registering a Callback for sensor event  */
 void on_sensor_event(sensor_h sensor, sensor_event_s *event, void *user_data) {
 	int occured_events = 0;
@@ -68,67 +67,68 @@ void on_sensor_event(sensor_h sensor, sensor_event_s *event, void *user_data) {
 	// Select a specific sensor with a sensor handle
 	sensor_type_e type;
 	sensor_get_type(sensor, &type);
+		switch (type) {
 
-	switch (type) {
+		//print mesurement to console
+		case SENSOR_HRM:
+			/*
+			 * count each event = corresponding to time as measurement is taken every half a second
+			 * There is the correlation - 2 events, (500ms apart) = 1 second.
+			 * Duration for example is 15 seconds = 30 events!
+			 */
 
-	//print mesurement to console
-	case SENSOR_HRM:
-		/*
-		 * count each event = corresponding to time as measurement is taken every half a second
-		 * There is the correlation - 2 events, (500ms apart) = 1 second.
-		 * Duration for example is 15 seconds = 30 events!
-		 */
+			occured_events = occured_events + 1;
+			//if (occured_events <= time_to_measure) {
 
-		occured_events = occured_events + 1;
-		if(occured_events<=30){
+				dlog_print(DLOG_INFO, LOG_TAG,
+						"Time: %llu, HR: %d, Accuracy: %d", event->timestamp,
+						event->values[0], event->accuracy);
+				char values[100];
+				char acc[100];
+				char timestamp[100];
+				char hour[10];
+				char minute[10];
+				char second[10];
+				//char payload[400];
+				sprintf(values, "%f", event->values[0]);
+				sprintf(acc, "%d", event->accuracy);
+				sprintf(timestamp, "%llu", event->timestamp);
+				sprintf(hour, "%d", time_info->tm_hour);
+				sprintf(minute, "%d", time_info->tm_min);
+				sprintf(second, "%d", time_info->tm_sec);
 
-		dlog_print(DLOG_INFO, LOG_TAG, "Time: %llu, HR: %d, Accuracy: %d",
-				event->timestamp, event->values[0], event->accuracy);
-		char values[100];
-		char acc[100];
-		char timestamp[100];
-		char hour[10];
-		char minute[10];
-		char second[10];
-		//char payload[400];
-		sprintf(values, "%f", event->values[0]);
-		sprintf(acc, "%d", event->accuracy);
-		sprintf(timestamp, "%llu", event->timestamp);
-		sprintf(hour, "%d", time_info->tm_hour);
-		sprintf(minute, "%d", time_info->tm_min);
-		sprintf(second, "%d", time_info->tm_sec);
+				//%d:%s%d:%ds time_info->tm_hour, time_info->tm_min < 10 ? "0" : "", time_info->tm_min, time_info->tm_sec,
 
-		//%d:%s%d:%ds time_info->tm_hour, time_info->tm_min < 10 ? "0" : "", time_info->tm_min, time_info->tm_sec,
+				//snprintf(buf, sizeof buf, "%s%s%s%s", values, acc, timestamp, str4);
+				strcat(values, ":");
+				strcat(values, acc);
+				strcat(values, ":");
+				strcat(values, hour);
+				strcat(values, ":");
+				strcat(values, minute);
+				strcat(values, ":");
+				strcat(values, second);
+				//strcat(values, ":");
 
-		//snprintf(buf, sizeof buf, "%s%s%s%s", values, acc, timestamp, str4);
-		strcat(values, ":");
-		strcat(values, acc);
-		strcat(values, ":");
-		strcat(values, hour);
-		strcat(values, ":");
-		strcat(values, minute);
-		strcat(values, ":");
-		strcat(values, second);
-		//strcat(values, ":");
+				/*
+				 char accuracy[100];
+				 sprintf(accuracy,"%d", event->accuracy);
+				 elm_object_text_set(Accuracy_event_label, accuracy);
+				 */
+				gboolean is_secured = false;
+				int length = 40;
 
-		/*
-		 char accuracy[100];
-		 sprintf(accuracy,"%d", event->accuracy);
-		 elm_object_text_set(Accuracy_event_label, accuracy);
-		 */
-		gboolean is_secured = false;
-		int length = 40;
-
-		elm_object_text_set(HeartRate_event_label, values);
-		elm_object_text_set(Accuracy_event_label, acc);
-		mex_send(values, length, is_secured);
-		}else{
-			//_sensor_stop_cb();
+				elm_object_text_set(HeartRate_event_label, values);
+				elm_object_text_set(Accuracy_event_label, acc);
+				mex_send(values, length, is_secured);
+			//} else {
+			//	stop_sensor_HRM();
+			//}
+			break;
+		default:
+			dlog_print(DLOG_ERROR, LOG_TAG, "Not an HRM event");
 		}
-		break;
-	default:
-		dlog_print(DLOG_ERROR, LOG_TAG, "Not an HRM event");
-	}
+
 }
 
 void _sensor_accuracy_changed_cb(sensor_h sensor, unsigned long long timestamp,
@@ -145,7 +145,7 @@ void _sensor_accuracy_changed_cb(sensor_h sensor, unsigned long long timestamp,
 	//elm_object_text_set(Accuracy_event_label, accuracy1);
 }
 
-void stop_sensor_HRM(){
+void stop_sensor_HRM() {
 	int error = sensor_listener_unset_event_cb(listener);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG,
