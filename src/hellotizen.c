@@ -70,46 +70,8 @@ char* model_get_app_data_path() {
 	return path_tmp;
 }
 
-void write_file(const char* buf) {
-	char *file = "datafile.txt";
-	//malloc this shit
-
-	//strcat(, file);
-	//char* filepath ="/opt/usr/globalapps/org.example.hellotizen/shared/res/datafilehardcode.txt";
-	//char filepath =  "datafile.txt";
-	FILE *fp;
-	fp =
-			fopen(
-					"/opt/usr/apps/org.example.hellotizen/shared/data/datafilehardcode.txt",
-					"w");
-
-	fputs(buf, fp);
-	fclose(fp);
-}
-
-static char* read_file(const char* filepath) {
-	FILE *fp = fopen(filepath, "r");
-	if (fp == NULL)
-		return NULL;
-	fseek(fp, 0, SEEK_END);
-	int bufsize = ftell(fp);
-	rewind(fp);
-	if (bufsize < 1)
-		return NULL;
-	char*buf = malloc(sizeof(char) * (bufsize));
-	memset(buf, '\0', sizeof(buf));
-	char str[200];
-	while (fgets(str, 200, fp) != NULL) {
-		dlog_print(DLOG_ERROR, "READFILE_CUSTOMTAG", "%s", str);
-		sprintf(buf + strlen(buf), "%s", str);
-	}
-	fclose(fp);
-	return buf;
-}
-
 /* Registering a Callback for sensor event  */
 void on_sensor_event(sensor_h sensor, sensor_event_s *event, void *user_data) {
-	//TODO PASS THE TIME STUFF AS PARAMETER, COMP EXPENSIVE!
 	time_t raw_time;
 	struct tm* time_info;
 	time(&raw_time);
@@ -141,8 +103,6 @@ void on_sensor_event(sensor_h sensor, sensor_event_s *event, void *user_data) {
 		sprintf(minute, "%d", time_info->tm_min);
 		sprintf(second, "%d", time_info->tm_sec);
 
-
-
 		//%d:%s%d:%ds time_info->tm_hour, time_info->tm_min < 10 ? "0" : "", time_info->tm_min, time_info->tm_sec,
 
 		//snprintf(buf, sizeof buf, "%s%s%s%s", values, acc, timestamp, str4);
@@ -155,8 +115,6 @@ void on_sensor_event(sensor_h sensor, sensor_event_s *event, void *user_data) {
 		strcat(values, ":");
 		strcat(values, second);
 		//strcat(values, ":");
-
-
 
 		/*
 		 char accuracy[100];
@@ -213,7 +171,7 @@ void _sensor_stop_cb(void *data, Evas_Object *obj, void *event_info) {
 	elm_object_disabled_set(stopHRM, EINA_TRUE);
 }
 
-void _sensor_start_cb() {
+void _sensor_start_cb_HRM() {
 
 	time_t raw_time;
 	struct tm* time_info;
@@ -347,10 +305,10 @@ void _sensor_start_cb() {
 		dlog_print(DLOG_INFO, LOG_TAG, "%f", event.values[0]);
 		sprintf(out, "%f", event.values[0]);
 
-		//elm_object_text_set(HeartRate_event_label, out);
-		//insert timestamp
+		//insert timestamp (logging)
 		time(&raw_time);
 		time_info = localtime(&raw_time);
+
 		//%d:%s%d:%ds time_info->tm_hour, time_info->tm_min < 10 ? "0" : "", time_info->tm_min, time_info->tm_sec,
 		/*dlog_print(DLOG_INFO, LOG_TAG,
 		 "Current time: %d:%s%d:%ds /Value HRM = %f", time_info->tm_hour,
@@ -361,7 +319,7 @@ void _sensor_start_cb() {
 	default:
 		dlog_print(DLOG_ERROR, LOG_TAG, "Not an HRM event");
 	}
-
+	//Set the button states
 	elm_object_disabled_set(startHRM, EINA_TRUE);
 	elm_object_disabled_set(stopHRM, EINA_FALSE);
 
@@ -374,11 +332,12 @@ static void win_delete_request_cb(void *data, Evas_Object *obj,
 	ui_app_exit();
 }
 
-float read_sensor_data(void *pointer) {
+//todo modify to take time parameter
+float read_sensor_data(void *pointer, int time_to_measure) {
 	void *data;
 	Evas_Object *obj;
 	void *event_info;
-	_sensor_start_cb();
+	_sensor_start_cb_HRM();
 	sensor_event_s event;
 	int error = sensor_listener_read_data(listener, &event);
 	float value = event.values[0];
@@ -394,7 +353,10 @@ static void win_back_cb(void *data, Evas_Object *obj, void *event_info) {
 }
 
 void update_ui(char *data) {
-	dlog_print(DLOG_INFO, LOG_TAG, "Updating UI with data %s", data);
+	/*
+	 * If desired this function can be used to trigger
+	 * a ui change when message is received from smartphone
+	 */
 	//elm_object_text_set(object->naviframe, data);
 }
 
@@ -413,7 +375,7 @@ void _create_new_cd_display(appdata_s *ad, char *name, void *cb) {
 	evas_object_size_hint_weight_set(box, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 	evas_object_show(box);
 
-	startHRM = new_button(ad, box, "Start", _sensor_start_cb);
+	startHRM = new_button(ad, box, "Start", _sensor_start_cb_HRM);
 
 	HeartRate_event_label = elm_label_add(box);
 	Accuracy_event_label = elm_label_add(box);
