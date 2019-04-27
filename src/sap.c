@@ -65,13 +65,12 @@ void mex_send(char *message, int length, gboolean is_secured) {
 void mex_data_received_cb(sap_peer_agent_h peer_agent,
 		unsigned int payload_length, void *buffer, void *user_data) {
 
-	//chars to hold the extracted command parameters from the command message (received)
-	char *received_sensor_type;
-	char *received_sensor_time;
+	//chars to hold the extracted command parameters from the command message (received) - initialize
+	char *received_sensor_type = g_strdup_printf("-1");
+	char *received_sensor_time = g_strdup_printf("-1");
 
 	//chars for holding various  messagesas part of debugging process
-	char *msg;
-	char *msg2;
+
 	char *msg3;
 	char *msg4;
 
@@ -85,8 +84,11 @@ void mex_data_received_cb(sap_peer_agent_h peer_agent,
 	 * The returned string should be freed with g_free() when no longer needed.
 	 */
 
-	//seperate the string using strtok() using delimiter, success
+	/* seperate the string using strtok() using delimiter, success */
+
+	// copy buffer to work with
 	char* str = g_strdup_printf("%s", (char *) buffer);
+
 	char* ptr;
 	char* saved;
 	int a = 0;
@@ -98,9 +100,7 @@ void mex_data_received_cb(sap_peer_agent_h peer_agent,
 
 	while (ptr != NULL) {
 		for (a = 0; a < 2; a = a + 1) {
-			printf("%s\n", ptr);
 			ptr = strtok_r(NULL, ":", &saved);
-
 			switch (a) {
 			case 0:
 				received_sensor_type = g_strdup_printf("%s", ptr);
@@ -113,43 +113,22 @@ void mex_data_received_cb(sap_peer_agent_h peer_agent,
 				break;
 			}
 		}
-		//send whole message data back testing, ok
-		/*
-		 response_payload_length = strlen(ptr);
-		 mex_send(ptr, response_payload_length, FALSE); //command replaced msg2!!
-		 */
 
-		//test return the command data, split in strings, ok
-		msg3 = g_strdup_printf("Time: %s", (char *) received_sensor_time);
-		response_payload_length = strlen(msg3);
-		mex_send(msg3, response_payload_length, FALSE);
-		msg4 = g_strdup_printf("Type: %s", (char *) received_sensor_type);
-		response_payload_length = strlen(msg4);
-		mex_send(msg4, response_payload_length, FALSE);
 	}
+
+	//test return the command data, split in strings, ok
+	msg3 = g_strdup_printf("Time: %s", (char *) received_sensor_time);
+	response_payload_length = strlen(msg3);
+	mex_send(msg3, response_payload_length, FALSE);
+	msg4 = g_strdup_printf("Type: %s", (char *) received_sensor_type);
+	response_payload_length = strlen(msg4);
+	mex_send(msg4, response_payload_length, FALSE);
 
 	priv_data.peer_agent = peer_agent;
 
-	/*
-	 * Trigger the Heart rate sensor and start getting data
-	 */
-	//float values = read_sensor_data();
-	//char *values_c ;
-	//sprintf(values_c, "%f", values);
-
-	//todo delete, debug bounce message
-	//response_payload_length = strlen(msg2);
-	//mex_send(msg2, response_payload_length, FALSE); //command replaced msg2!!
-
-	//component of the UI can be updated on message received.
-	//update_ui(msg);
-
 	//Free memory
-	g_free(msg);
-	g_free(msg2);
 	g_free(msg3);
 	g_free(msg4);
-
 	g_free(str);
 	g_free(received_sensor_time);
 	g_free(received_sensor_type);
@@ -318,11 +297,10 @@ void initialize_sap() {
 		is_agent_initialized = agent_initialize();
 		if (is_agent_initialized) {
 			dlog_print(DLOG_DEBUG, LOG_TAG,
-					"Successfully initialized SAP Agent!");
+					"Succesfully initialized SAP Agent!");
 		}
 
 	}
 
 }
-
 

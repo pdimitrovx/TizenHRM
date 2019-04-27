@@ -64,7 +64,7 @@ void on_sensor_event(sensor_h sensor, sensor_event_s *event, void *user_data) {
 	struct tm* time_info;
 	time(&raw_time);
 	time_info = localtime(&raw_time);
-
+	char out[100];
 	// Select a specific sensor with a sensor handle
 	sensor_type_e type;
 	sensor_get_type(sensor, &type);
@@ -145,9 +145,8 @@ void _sensor_accuracy_changed_cb(sensor_h sensor, unsigned long long timestamp,
 	//elm_object_text_set(Accuracy_event_label, accuracy1);
 }
 
-//todo testing callback stop, fix this
-//void _sensor_stop_cb(void *data, Evas_Object *obj, void *event_info) {
-void _sensor_stop_cb() {
+void _sensor_stop_cb(void *data, Evas_Object *obj, void *event_info) {
+//void _sensor_stop_cb() {
 	int error = sensor_listener_unset_event_cb(listener);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG,
