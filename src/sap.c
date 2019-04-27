@@ -4,7 +4,6 @@
 #include <sap_message_exchange.h>
 #include <time.h>
 
-
 #ifdef  LOG_TAG
 #undef  LOG_TAG
 #endif
@@ -75,6 +74,20 @@ void mex_data_received_cb(sap_peer_agent_h peer_agent,
 	 * the maximum space required and allocates memory to hold the result.
 	 * The returned string should be freed with g_free() when no longer needed.
 	 */
+	char* str = g_strdup_printf((char *) buffer);
+	char* ptr;
+	char* saved;
+	ptr = strtok_r(str, ":", &saved);
+	response_payload_length = strlen(ptr);
+	mex_send(ptr, response_payload_length, FALSE); //command replaced msg2!!
+
+	while (ptr != NULL) {
+		response_payload_length = strlen(ptr);
+		mex_send(ptr, response_payload_length, FALSE); //command replaced msg2!!
+		printf("%s\n", ptr);
+		ptr = strtok_r(NULL, ":", &saved);
+	}
+
 	char *msg = g_strdup_printf("Received data: %s", (char *) buffer);
 	dlog_print(DLOG_INFO, LOG_TAG, "message:%s, length:%d", buffer,
 			payload_length);
@@ -84,13 +97,13 @@ void mex_data_received_cb(sap_peer_agent_h peer_agent,
 	//float values = read_sensor_data();
 	//char *values_c ;
 	//sprintf(values_c, "%f", values);
+
 	char *msg2 = g_strdup_printf("Petar Data %s", (char *) msg);
 	response_payload_length = strlen(msg2);
-	mex_send(msg2, response_payload_length, FALSE);
+	mex_send(msg2, response_payload_length, FALSE); //command replaced msg2!!
 	update_ui(msg);
 	g_free(msg);
 	g_free(msg2);
-//https://www.codingame.com/playgrounds/14213/how-to-play-with-strings-in-c/string-split
 }
 
 void on_peer_agent_updated(sap_peer_agent_h peer_agent,
@@ -217,13 +230,13 @@ gboolean agent_initialize() {
 	int attempts = 0;
 
 	for (attempts = 0; attempts < 150; attempts++) {
-		if (result!=SAP_RESULT_SUCCESS){
-		waitFor(1);
-		//((result != SAP_RESULT_SUCCESS))
-		result = sap_agent_initialize(priv_data.agent, MEX_PROFILE_ID,
-				SAP_AGENT_ROLE_PROVIDER, on_agent_initialized, NULL);
-		dlog_print(DLOG_DEBUG, LOG_TAG,
-				"SAP >>> sap_agent_initialize() >>> %d", result);
+		if (result != SAP_RESULT_SUCCESS) {
+			waitFor(1);
+			//((result != SAP_RESULT_SUCCESS))
+			result = sap_agent_initialize(priv_data.agent, MEX_PROFILE_ID,
+					SAP_AGENT_ROLE_PROVIDER, on_agent_initialized, NULL);
+			dlog_print(DLOG_DEBUG, LOG_TAG,
+					"SAP >>> sap_agent_initialize() >>> %d", result);
 		}
 	}
 
@@ -236,6 +249,7 @@ gboolean agent_initialize() {
 }
 
 void initialize_sap() {
+
 	bool is_agent_initialized = FALSE;
 	sap_agent_h agent = NULL;
 
@@ -253,10 +267,25 @@ void initialize_sap() {
 		sap_set_device_status_changed_cb(on_device_status_changed, NULL);
 
 		is_agent_initialized = agent_initialize();
-		if (is_agent_initialized){
-			dlog_print(DLOG_DEBUG, LOG_TAG, "Succesfully initialized SAP Agent!");
+		if (is_agent_initialized) {
+			dlog_print(DLOG_DEBUG, LOG_TAG,
+					"Succesfully initialized SAP Agent!");
 		}
 
 	}
 
+}
+
+char *split_string(char *received) {
+	char *s;
+	char delimiter[] = ":";
+	s = strtok(received, delimiter);
+
+	while (s != NULL) {
+
+		printf("'%s'\n", s);
+		s = strtok(NULL, delimiter);
+	}
+
+	return s;
 }
