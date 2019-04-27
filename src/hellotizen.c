@@ -145,7 +145,7 @@ void _sensor_accuracy_changed_cb(sensor_h sensor, unsigned long long timestamp,
 	//elm_object_text_set(Accuracy_event_label, accuracy1);
 }
 
-void stop_sensor_test(){
+void stop_sensor_HRM(){
 	int error = sensor_listener_unset_event_cb(listener);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG,

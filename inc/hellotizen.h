@@ -15,7 +15,7 @@ void update_ui(char *data);
 void mex_send();
 void _sensor_start_cb_HRM();
 void start_streaming_data();
-void stop_sensor_test();
+void stop_sensor_HRM();
 
 #if !defined(PACKAGE)
 #define PACKAGE "org.example.hellotizen"

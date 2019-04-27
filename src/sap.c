@@ -133,7 +133,7 @@ void mex_data_received_cb(sap_peer_agent_h peer_agent,
 	g_free(received_sensor_type);
 	}else{
 		//stop reading data?
-		stop_sensor_test();
+		stop_sensor_HRM();
 
 	}
 }
