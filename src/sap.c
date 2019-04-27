@@ -69,11 +69,6 @@ void mex_data_received_cb(sap_peer_agent_h peer_agent,
 	char *received_sensor_type = g_strdup_printf("-1");
 	char *received_sensor_time = g_strdup_printf("-1");
 
-	//chars for holding various  messagesas part of debugging process
-
-	char *msg3;
-	char *msg4;
-
 	unsigned int response_payload_length;
 	//char *values = read_sensor_data();
 
@@ -88,6 +83,7 @@ void mex_data_received_cb(sap_peer_agent_h peer_agent,
 
 	// copy buffer to work with
 	char* str = g_strdup_printf("%s", (char *) buffer);
+	if (strcmp(str, "STOP") != 0){
 
 	char* ptr;
 	char* saved;
@@ -115,25 +111,41 @@ void mex_data_received_cb(sap_peer_agent_h peer_agent,
 		}
 
 	}
-
+	start_streaming_data(received_sensor_type);
 	//test return the command data, split in strings, ok
-	msg3 = g_strdup_printf("Time: %s", (char *) received_sensor_time);
-	response_payload_length = strlen(msg3);
-	mex_send(msg3, response_payload_length, FALSE);
-	msg4 = g_strdup_printf("Type: %s", (char *) received_sensor_type);
-	response_payload_length = strlen(msg4);
-	mex_send(msg4, response_payload_length, FALSE);
+	/*
+	 msg3 = g_strdup_printf("Time: %s", (char *) received_sensor_time);
+	 response_payload_length = strlen(msg3);
+	 mex_send(msg3, response_payload_length, FALSE);
+	 g_free(msg3);
 
+	 msg4 = g_strdup_printf("Type: %s", (char *) received_sensor_type);
+	 response_payload_length = strlen(msg4);
+	 mex_send(msg4, response_payload_length, FALSE);
+	 g_free(msg4);
+
+	 */
 	priv_data.peer_agent = peer_agent;
 
 	//Free memory
-	g_free(msg3);
-	g_free(msg4);
 	g_free(str);
 	g_free(received_sensor_time);
 	g_free(received_sensor_type);
-}
+	}else{
+		//stop reading data?
+		stop_sensor_test();
 
+	}
+}
+void start_streaming_data(char *type) {
+	char *hrm_type = "0";
+	if (strcmp(type, hrm_type) == 0) {
+		//start Heart Rate Sensor
+		_sensor_start_cb_HRM();
+	} else {
+	}
+
+}
 void on_peer_agent_updated(sap_peer_agent_h peer_agent,
 		sap_peer_agent_status_e peer_status,
 		sap_peer_agent_found_result_e result, void *user_data) {

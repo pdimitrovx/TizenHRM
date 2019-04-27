@@ -145,6 +145,26 @@ void _sensor_accuracy_changed_cb(sensor_h sensor, unsigned long long timestamp,
 	//elm_object_text_set(Accuracy_event_label, accuracy1);
 }
 
+void stop_sensor_test(){
+	int error = sensor_listener_unset_event_cb(listener);
+	if (error != SENSOR_ERROR_NONE) {
+		dlog_print(DLOG_ERROR, LOG_TAG,
+				"sensor_listener_unset_event_cb error: %d", error);
+	}
+
+	error = sensor_listener_stop(listener);
+	if (error != SENSOR_ERROR_NONE) {
+		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_listener_stop error: %d",
+				error);
+	}
+
+	error = sensor_destroy_listener(listener);
+	if (error != SENSOR_ERROR_NONE) {
+		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_destroy_listener error: %d",
+				error);
+	}
+}
+
 void _sensor_stop_cb(void *data, Evas_Object *obj, void *event_info) {
 //void _sensor_stop_cb() {
 	int error = sensor_listener_unset_event_cb(listener);
