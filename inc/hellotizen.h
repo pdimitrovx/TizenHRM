@@ -14,6 +14,7 @@ void initialize_sap();
 float read_sensor_data();
 void update_ui(char *data);
 void mex_send();
+void _sensor_stop_cb();
 
 #if !defined(PACKAGE)
 #define PACKAGE "org.example.hellotizen"

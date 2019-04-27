@@ -20,11 +20,10 @@
 #endif
 #define BUFLEN 200
 #define MIN_INTERVAL_S 200
+#define DEFAULT_MEASURE_DURATION 15
 
 /*=============================UI EVAS START HERE================================*/
-/*Evas is visual stuff -
-
- * An Evas object is the most basic visual entity used in Evas.
+/* An Evas object is the most basic visual entity used in Evas.
  * Everything, be it a single line or a complex list of UI components, is an Evas object. */
 
 typedef struct appdata {
@@ -57,27 +56,14 @@ Evas_Object *new_button(appdata_s *ad, Evas_Object *parrent, char *name,
 	return bt;
 }
 
-char* model_get_app_data_path() {
-	char* path = NULL;
-
-	char *path_tmp = app_get_shared_resource_path();
-	if (!path_tmp) {
-		dlog_print(DLOG_ERROR, LOG_TAG, "Function app_get_data_path() failed");
-		return false;
-	}
-
-	*path = strdup(path_tmp);
-	return path_tmp;
-}
 
 /* Registering a Callback for sensor event  */
 void on_sensor_event(sensor_h sensor, sensor_event_s *event, void *user_data) {
+	int occured_events = 0;
 	time_t raw_time;
 	struct tm* time_info;
 	time(&raw_time);
 	time_info = localtime(&raw_time);
-
-	char out[100];
 
 	// Select a specific sensor with a sensor handle
 	sensor_type_e type;
@@ -87,6 +73,15 @@ void on_sensor_event(sensor_h sensor, sensor_event_s *event, void *user_data) {
 
 	//print mesurement to console
 	case SENSOR_HRM:
+		/*
+		 * count each event = corresponding to time as measurement is taken every half a second
+		 * There is the correlation - 2 events, (500ms apart) = 1 second.
+		 * Duration for example is 15 seconds = 30 events!
+		 */
+
+		occured_events = occured_events + 1;
+		if(occured_events<=30){
+
 		dlog_print(DLOG_INFO, LOG_TAG, "Time: %llu, HR: %d, Accuracy: %d",
 				event->timestamp, event->values[0], event->accuracy);
 		char values[100];
@@ -127,7 +122,9 @@ void on_sensor_event(sensor_h sensor, sensor_event_s *event, void *user_data) {
 		elm_object_text_set(HeartRate_event_label, values);
 		elm_object_text_set(Accuracy_event_label, acc);
 		mex_send(values, length, is_secured);
-
+		}else{
+			//_sensor_stop_cb();
+		}
 		break;
 	default:
 		dlog_print(DLOG_ERROR, LOG_TAG, "Not an HRM event");
@@ -148,7 +145,9 @@ void _sensor_accuracy_changed_cb(sensor_h sensor, unsigned long long timestamp,
 	//elm_object_text_set(Accuracy_event_label, accuracy1);
 }
 
-void _sensor_stop_cb(void *data, Evas_Object *obj, void *event_info) {
+//todo testing callback stop, fix this
+//void _sensor_stop_cb(void *data, Evas_Object *obj, void *event_info) {
+void _sensor_stop_cb() {
 	int error = sensor_listener_unset_event_cb(listener);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG,
@@ -303,18 +302,11 @@ void _sensor_start_cb_HRM() {
 	case SENSOR_HRM:
 		//print mesurement to console
 		dlog_print(DLOG_INFO, LOG_TAG, "%f", event.values[0]);
-		sprintf(out, "%f", event.values[0]);
 
 		//insert timestamp (logging)
 		time(&raw_time);
 		time_info = localtime(&raw_time);
 
-		//%d:%s%d:%ds time_info->tm_hour, time_info->tm_min < 10 ? "0" : "", time_info->tm_min, time_info->tm_sec,
-		/*dlog_print(DLOG_INFO, LOG_TAG,
-		 "Current time: %d:%s%d:%ds /Value HRM = %f", time_info->tm_hour,
-		 time_info->tm_min < 10 ? "0" : "", time_info->tm_min, time_info->tm_sec, event.values[0]
-		 );
-		 */
 		break;
 	default:
 		dlog_print(DLOG_ERROR, LOG_TAG, "Not an HRM event");
@@ -332,18 +324,6 @@ static void win_delete_request_cb(void *data, Evas_Object *obj,
 	ui_app_exit();
 }
 
-//todo modify to take time parameter
-float read_sensor_data(void *pointer, int time_to_measure) {
-	void *data;
-	Evas_Object *obj;
-	void *event_info;
-	_sensor_start_cb_HRM();
-	sensor_event_s event;
-	int error = sensor_listener_read_data(listener, &event);
-	float value = event.values[0];
-	//_sensor_stop_cb(data, obj, event_info);
-	return value;
-}
 static void win_back_cb(void *data, Evas_Object *obj, void *event_info) {
 	appdata_s *ad = data;
 
@@ -485,8 +465,7 @@ static void app_terminate(void *data) {
 }
 
 int main(int argc, char *argv[]) {
-	char* test = "Petar was here";
-	char* path_to_;
+
 	appdata_s ad;
 	memset(&ad, 0x00, sizeof(appdata_s));
 	int ret = 0;
