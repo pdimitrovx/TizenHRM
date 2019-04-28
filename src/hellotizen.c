@@ -14,6 +14,10 @@
 #undef  LOG_TAG
 #endif
 #define LOG_TAG "HELLOTIZEN"
+#ifdef  LOG_TAG_ACCELEROMETER
+#undef  LOG_TAG_ACCELEROMETER
+#endif
+#define LOG_TAG_ACCELEROMETER "ACCELEROMETER_TEST"
 
 #if !defined(PACKAGE)
 #define PACKAGE "org.example.hellotizen"
@@ -67,70 +71,131 @@ void on_sensor_event(sensor_h sensor, sensor_event_s *event, void *user_data) {
 	// Select a specific sensor with a sensor handle
 	sensor_type_e type;
 	sensor_get_type(sensor, &type);
-		switch (type) {
+	switch (type) {
 
-		//print mesurement to console
-		case SENSOR_HRM:
-			/*
-			 * count each event = corresponding to time as measurement is taken every half a second
-			 * There is the correlation - 2 events, (500ms apart) = 1 second.
-			 * Duration for example is 15 seconds = 30 events!
-			 */
+	//print mesurement to console
+	case SENSOR_HRM:
+		/*
+		 * count each event = corresponding to time as measurement is taken every half a second
+		 * There is the correlation - 2 events, (500ms apart) = 1 second.
+		 * Duration for example is 15 seconds = 30 events!
+		 */
 
-			occured_events = occured_events + 1;
-			//if (occured_events <= time_to_measure) {
+		occured_events = occured_events + 1;
+		//if (occured_events <= time_to_measure) {
 
-				dlog_print(DLOG_INFO, LOG_TAG,
-						"Time: %llu, HR: %d, Accuracy: %d", event->timestamp,
-						event->values[0], event->accuracy);
-				char values[100];
-				char acc[100];
-				char timestamp[100];
-				char hour[10];
-				char minute[10];
-				char second[10];
-				//char payload[400];
-				sprintf(values, "%f", event->values[0]);
-				sprintf(acc, "%d", event->accuracy);
-				sprintf(timestamp, "%llu", event->timestamp);
-				sprintf(hour, "%d", time_info->tm_hour);
-				sprintf(minute, "%d", time_info->tm_min);
-				sprintf(second, "%d", time_info->tm_sec);
+		dlog_print(DLOG_INFO, LOG_TAG, "Time: %llu, HR: %d, Accuracy: %d",
+				event->timestamp, event->values[0], event->accuracy);
+		char values[100];
+		char acc[100];
+		char timestamp[100];
+		char hour[10];
+		char minute[10];
+		char second[10];
+		//char payload[400];
+		sprintf(values, "%f", event->values[0]);
+		sprintf(acc, "%d", event->accuracy);
+		sprintf(timestamp, "%llu", event->timestamp);
+		sprintf(hour, "%d", time_info->tm_hour);
+		sprintf(minute, "%d", time_info->tm_min);
+		sprintf(second, "%d", time_info->tm_sec);
 
-				//%d:%s%d:%ds time_info->tm_hour, time_info->tm_min < 10 ? "0" : "", time_info->tm_min, time_info->tm_sec,
+		//%d:%s%d:%ds time_info->tm_hour, time_info->tm_min < 10 ? "0" : "", time_info->tm_min, time_info->tm_sec,
 
-				//snprintf(buf, sizeof buf, "%s%s%s%s", values, acc, timestamp, str4);
-				strcat(values, ":");
-				strcat(values, acc);
-				strcat(values, ":");
-				strcat(values, hour);
-				strcat(values, ":");
-				strcat(values, minute);
-				strcat(values, ":");
-				strcat(values, second);
-				//strcat(values, ":");
+		//snprintf(buf, sizeof buf, "%s%s%s%s", values, acc, timestamp, str4);
+		strcat(values, ":");
+		strcat(values, acc);
+		strcat(values, ":");
+		strcat(values, hour);
+		strcat(values, ":");
+		strcat(values, minute);
+		strcat(values, ":");
+		strcat(values, second);
+		//strcat(values, ":");
 
-				/*
-				 char accuracy[100];
-				 sprintf(accuracy,"%d", event->accuracy);
-				 elm_object_text_set(Accuracy_event_label, accuracy);
-				 */
-				gboolean is_secured = false;
-				int length = 40;
+		/*
+		 char accuracy[100];
+		 sprintf(accuracy,"%d", event->accuracy);
+		 elm_object_text_set(Accuracy_event_label, accuracy);
+		 */
+		gboolean is_secured = false;
+		int length = 40;
 
-				elm_object_text_set(HeartRate_event_label, values);
-				elm_object_text_set(Accuracy_event_label, acc);
-				mex_send(values, length, is_secured);
-			//} else {
-			//	stop_sensor_HRM();
-			//}
-			break;
-		default:
-			dlog_print(DLOG_ERROR, LOG_TAG, "Not an HRM event");
-		}
+		elm_object_text_set(HeartRate_event_label, values);
+		elm_object_text_set(Accuracy_event_label, acc);
+		mex_send(values, length, is_secured);
+		//} else {
+		//	stop_sensor_HRM();
+		//}
+		break;
+	default:
+		dlog_print(DLOG_ERROR, LOG_TAG, "Not an HRM event");
+	}
 
 }
+void on_sensor_event_ACCELEROMETER(sensor_h sensor, sensor_event_s *event,
+		void *user_data) {
 
+	// Select a specific sensor with a sensor handle
+	sensor_type_e type;
+	sensor_get_type(sensor, &type);
+	switch (type) {
+
+	//print mesurement to console
+	case SENSOR_ACCELEROMETER:
+
+//3 Cartesian axis values and a timestamp X,Y,Z
+		dlog_print(DLOG_INFO, LOG_TAG_ACCELEROMETER,
+				"X: %f, Y: %f, Z: %f, timestamp: %llu", event->values[0],
+				event->values[1], event->values[2],event->timestamp);
+		/*
+		 char values[100];
+		 char acc[100];
+		 char timestamp[100];
+		 char hour[10];
+		 char minute[10];
+		 char second[10];
+		 //char payload[400];
+		 sprintf(values, "%f", event->values[0]);
+		 sprintf(acc, "%d", event->accuracy);
+		 sprintf(timestamp, "%llu", event->timestamp);
+		 sprintf(hour, "%d", time_info->tm_hour);
+		 sprintf(minute, "%d", time_info->tm_min);
+		 sprintf(second, "%d", time_info->tm_sec);
+
+		 //%d:%s%d:%ds time_info->tm_hour, time_info->tm_min < 10 ? "0" : "", time_info->tm_min, time_info->tm_sec,
+
+		 //snprintf(buf, sizeof buf, "%s%s%s%s", values, acc, timestamp, str4);
+		 strcat(values, ":");
+		 strcat(values, acc);
+		 strcat(values, ":");
+		 strcat(values, hour);
+		 strcat(values, ":");
+		 strcat(values, minute);
+		 strcat(values, ":");
+		 strcat(values, second);
+		 //strcat(values, ":");
+		 */
+		/*
+		 char accuracy[100];
+		 sprintf(accuracy,"%d", event->accuracy);
+		 elm_object_text_set(Accuracy_event_label, accuracy);
+		 */
+		gboolean is_secured = false;
+		int length = 40;
+
+		//elm_object_text_set(HeartRate_event_label, values);
+		//elm_object_text_set(Accuracy_event_label, acc);
+		//mex_send(values, length, is_secured);
+		//} else {
+		//	stop_sensor_HRM();
+		//}
+		break;
+	default:
+		dlog_print(DLOG_ERROR, LOG_TAG, "Not an ACCELEROMETER event");
+	}
+
+}
 void _sensor_accuracy_changed_cb(sensor_h sensor, unsigned long long timestamp,
 		sensor_data_accuracy_e accuracy, void *data) {
 	dlog_print(DLOG_DEBUG, LOG_TAG, "Sensor accuracy callback invoked");
@@ -336,6 +401,134 @@ void _sensor_start_cb_HRM() {
 
 }
 
+void _sensor_start_cb_ACCELEROMETER() {
+
+	void *user_data = NULL;
+
+	bool supported = false;
+
+	/* Define sensor type SENSOR_HRM */
+	sensor_type_e type = SENSOR_ACCELEROMETER;
+
+	/* Create Handle for sensor */
+	sensor_h sensor;
+
+	/* Check if sensor is supported */
+	int error = sensor_is_supported(type, &supported);
+	if (error != SENSOR_ERROR_NONE) {
+		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
+				"sensor_is_supported function error: %d", error);
+		return;
+	}
+	if (supported) {
+		dlog_print(DLOG_DEBUG, LOG_TAG_ACCELEROMETER,
+				"ACCELEROMETER is%s supported", supported ? "" : " not");
+	}
+
+	/* Count of ACCELEROMETER */
+	int count = 0;
+
+	/* list of ACCELEROMETER*/
+	sensor_h *list;
+
+	/* Get all available sensors of type ACCELEROMETER, add to list */
+	error = sensor_get_sensor_list(type, &list, &count);
+	if (error != SENSOR_ERROR_NONE) {
+		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
+				"sensor_get_sensor_list error: %d", error);
+	} else {
+		dlog_print(DLOG_DEBUG, LOG_TAG_ACCELEROMETER,
+				"Number of ACCELEROMETER sensors: %d", count);
+		free(list);
+	}
+
+	/* Get the Default ACCELEROMETER (sensor of type) */
+	error = sensor_get_default_sensor(type, &sensor);
+	if (error != SENSOR_ERROR_NONE) {
+		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
+				"sensor_get_default_sensor error: %d", error);
+		return;
+	} else {
+		dlog_print(DLOG_DEBUG, LOG_TAG_ACCELEROMETER,
+				"sensor_get_default_sensor, ACCELEROMETER Sensor Found!");
+	}
+
+	/* Create a sensor listener */
+	error = sensor_create_listener(sensor, &listener);
+	if (error != SENSOR_ERROR_NONE) {
+		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
+				"sensor_create_listener error: %d", error);
+		return;
+	}
+	dlog_print(DLOG_DEBUG, LOG_TAG_ACCELEROMETER, "sensor_create_listener");
+
+	/* Register a callback to be invoked when sensor events are delivered via a sensor listener [above]  */
+	error = sensor_listener_set_event_cb(listener, MIN_INTERVAL_S,
+			on_sensor_event_ACCELEROMETER, user_data);
+	if (error != SENSOR_ERROR_NONE) {
+		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
+				"sensor_listener_set_event_cb error: %d", error);
+		return;
+	}
+
+	dlog_print(DLOG_DEBUG, LOG_TAG_ACCELEROMETER,
+			"sensor_listener_set_event_cb");
+
+	/* set the interval for ACCELEROMETER in milliseconds. 100-1000ms */
+	error = sensor_listener_set_interval(listener, MIN_INTERVAL_S);
+	if (error != SENSOR_ERROR_NONE) {
+		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
+				"sensor_listener_set_interval error: %d", error);
+		return;
+	}
+	dlog_print(DLOG_DEBUG, LOG_TAG_ACCELEROMETER,
+			"sensor_listener_set_intervals");
+
+	/*
+	 // Registering the Accuracy Changed Callback
+	 error = sensor_listener_set_accuracy_cb(listener,
+	 _sensor_accuracy_changed_cb, user_data);
+	 if (error != SENSOR_ERROR_NONE) {
+	 dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
+	 "sensor_listener_set_accuracy_cb error: %d", error);
+	 return;
+
+	 }
+	 dlog_print(DLOG_DEBUG, LOG_TAG_ACCELEROMETER,
+	 "sensor_listener_set_accuracy_cb");
+	 */
+
+	/* Changes the power-saving behavior of a sensor listener. [ALWAYS ON] */
+	error = sensor_listener_set_option(listener, SENSOR_OPTION_ALWAYS_ON);
+	if (error != SENSOR_ERROR_NONE) {
+		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
+				"sensor_listener_set_option error: %d", error);
+		return;
+	}
+
+	dlog_print(DLOG_DEBUG, LOG_TAG_ACCELEROMETER, "sensor_listener_set_option");
+
+	/* START the sensor listener */
+	error = sensor_listener_start(listener);
+	if (error != SENSOR_ERROR_NONE) {
+		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
+				"sensor_listener_start error: %d", error);
+		return;
+	}
+
+	dlog_print(DLOG_DEBUG, LOG_TAG_ACCELEROMETER, "sensor_listener_start");
+
+	/* Read sensor data (from started listener).
+	 sensor_event_s event;
+	 error = sensor_listener_read_data(listener, &event);
+	 if (error != SENSOR_ERROR_NONE) {
+
+	 dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
+	 "sensor_listener_read_data error: %d", error);
+	 return;
+	 }*/
+}
+
 /* registering callback method event to call
  ui_app_exit() when object is deleted */
 static void win_delete_request_cb(void *data, Evas_Object *obj,
@@ -373,8 +566,8 @@ void _create_new_cd_display(appdata_s *ad, char *name, void *cb) {
 	evas_object_size_hint_align_set(box, EVAS_HINT_FILL, EVAS_HINT_FILL);
 	evas_object_size_hint_weight_set(box, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 	evas_object_show(box);
-
-	startHRM = new_button(ad, box, "Start", _sensor_start_cb_HRM);
+//todo change to _sensor_start_cb_HRM
+	startHRM = new_button(ad, box, "Start", _sensor_start_cb_ACCELEROMETER);
 
 	HeartRate_event_label = elm_label_add(box);
 	Accuracy_event_label = elm_label_add(box);
