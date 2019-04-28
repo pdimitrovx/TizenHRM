@@ -24,11 +24,15 @@
 #endif
 #define BUFLEN 200
 #define MIN_INTERVAL_S_HRM 500
-#define MIN_INTERVAL_S_ACCELEROMETER 500
+#define MIN_INTERVAL_S_ACCELEROMETER 100
 
 #define DEFAULT_MEASURE_DURATION 15
+
 #define HRM_PREFIX "HRM_START"
+#define HRM_END_PREFIX "END_HRM"
+
 #define ACCELEROMETER_PREFIX "ACC_START"
+#define ACCELEROMETER_END_PREFIX "END_ACC"
 
 /*=============================UI EVAS START HERE================================*/
 /* An Evas object is the most basic visual entity used in Evas.
@@ -135,81 +139,86 @@ void on_sensor_event_ACCELEROMETER(sensor_h sensor, sensor_event_s *event,
 
 	//print mesurement to console
 	case SENSOR_ACCELEROMETER:
+		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER, "before VARS ACC EVENT");
 
-		//3 Cartesian axis values and a timestamp X,Y,Z
+		char prefix_acc[64];
+		char end_prefix_acc[64];
 
-		dlog_print(DLOG_INFO, "domati", "X: %f, Y: %f, Z: %f, timestamp: %llu",
-				event->values[0], event->values[1], event->values[2],
-				event->timestamp);
-
-		/*
-		 char acc_values[450];
-		 char acc_value_X[100];
-		 char acc_value_Y[100];
-		 char acc_value_Z[100];
-		 char acc_value_epoch[50];
-		 char acc_accuracy[50];
-		 char acc_prefix[50] = ACCELEROMETER_PREFIX;
-		 sprintf(acc_value_X, "%f", event->values[0]);
-		 sprintf(acc_value_Y, "%f", event->values[1]);
-		 sprintf(acc_value_Z, "%f", event->values[2]);
-		 sprintf(acc_value_epoch, "%llu", event->timestamp);
-		 sprintf(acc_accuracy, "%d", event->accuracy);
-
-		 //snprintf(buf, sizeof buf, "%s%s%s%s", values, acc, timestamp, str4);
-		 strcat(acc_values, acc_prefix);
-		 strcat(acc_values, ":");
-		 strcat(acc_values, acc_value_X);
-		 strcat(acc_values, ":");
-		 strcat(acc_values, acc_value_Y);
-		 strcat(acc_values, ":");
-		 strcat(acc_values, acc_value_Z);
-		 strcat(acc_values, ":");
-		 strcat(acc_values, acc_accuracy);
-		 strcat(acc_values, ":");
-		 strcat(acc_values, acc_value_epoch);
-		 strcat(acc_values, ":");
-
-		 strcat(acc_values, "END_ACC");
-		 strcat(acc_values, "/n");
-		 */
 		char x[64];
-
 		char y[64];
 		char z[64];
+		char accuracy[64];
+		char delimiter[64] = ":";
+		char timestamp_epoch[64];
+		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER, "CREATED VARS ACC EVENT");
 
-		int error = snprintf(x, ((sizeof x) + 1), "%f", event->values[0]);
+		int error = snprintf(prefix_acc, sizeof prefix_acc, "%s", ACCELEROMETER_PREFIX);
+		error = snprintf(end_prefix_acc, sizeof end_prefix_acc, "%s", ACCELEROMETER_END_PREFIX);
+
+		error = snprintf(timestamp_epoch, sizeof timestamp_epoch, "%llu", event->timestamp);
+		error = snprintf(accuracy, sizeof accuracy, "%d",event->accuracy);
+		error = snprintf(x, ((sizeof x) + 1), "%f", event->values[0]);
+		error = snprintf(y, sizeof y, "%f", event->values[1]);
+		error = snprintf(z, sizeof z, "%f", event->values[2]);
 		if (error < 0) {
 			dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
-					"snprintf FALURE  at X");
+					"snprintf FALURE  at Z");
 		}
 		if (error >= sizeof x) {
 			dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
-					"snprintf TRUNCATED RESULT  at X");
+					"snprintf TRUNCATED RESULT  at Z");
 		} else {
+			dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER, "snprintf success");
 
-			//dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER, "snprintf OK at X");
 		}
-		error = snprintf(y, sizeof y, "%f", event->values[1]);
-		error = snprintf(z, sizeof z, "%f", event->values[2]);
 
 		const size_t x_len = strlen(x);
-		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER, "x-len is: %zu", x_len);
-		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER, "x is: %s", x);
-
 		const size_t y_len = strlen(y);
 		const size_t z_len = strlen(z);
+		const size_t delimiter_len = strlen(delimiter);
+		const size_t prefix_acc_len = strlen(prefix_acc);
+		const size_t end_prefix_acc_len = strlen(end_prefix_acc);
+		const size_t accuracy_len = strlen(accuracy);
+		const size_t timestamp_epoch_len = strlen(timestamp_epoch);
 
-		char *acc_values = malloc(x_len + y_len + z_len + 4); // +1 for the null-terminator
+		char *acc_values = malloc(x_len + y_len + z_len + prefix_acc_len + accuracy_len + timestamp_epoch_len + 300); // +1 for the null-terminator
 
-		//dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER, "BEFORE  join acc_values is: %s", acc_values);
 
-		error = sprintf(acc_values,"%s", x);
+/*
+ * Create the final message. +1 for the \n at the end.
+ */
+		memcpy(acc_values, prefix_acc, prefix_acc_len);
+		memcpy(acc_values + prefix_acc_len,delimiter, delimiter_len);
 
-		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER, "AFTER join acc_values is: %s", acc_values);
+		memcpy(acc_values + prefix_acc_len + delimiter_len,x, x_len);
+		memcpy(acc_values + prefix_acc_len + delimiter_len + x_len,delimiter, delimiter_len);
+
+		memcpy(acc_values + prefix_acc_len + delimiter_len + x_len + delimiter_len,y, y_len);
+		memcpy(acc_values + prefix_acc_len + delimiter_len + x_len + delimiter_len + y_len, delimiter, delimiter_len);
+
+		memcpy(acc_values + prefix_acc_len + delimiter_len + x_len + delimiter_len + y_len + delimiter_len, z, z_len);
+		memcpy(acc_values + prefix_acc_len + delimiter_len + x_len + delimiter_len + y_len + delimiter_len + z_len, delimiter, delimiter_len);
+
+		memcpy(acc_values + prefix_acc_len + delimiter_len + x_len + delimiter_len + y_len + delimiter_len + z_len + delimiter_len, accuracy, accuracy_len +1);
+		memcpy(acc_values + prefix_acc_len + delimiter_len + x_len + delimiter_len + y_len + delimiter_len + z_len + delimiter_len + accuracy_len, delimiter, delimiter_len);
+
+		memcpy(acc_values + prefix_acc_len + delimiter_len + x_len + delimiter_len + y_len + delimiter_len + z_len + delimiter_len + accuracy_len + delimiter_len, timestamp_epoch, timestamp_epoch_len );
+		memcpy(acc_values + prefix_acc_len + delimiter_len + x_len + delimiter_len + y_len + delimiter_len + z_len + delimiter_len + accuracy_len + delimiter_len + timestamp_epoch_len, delimiter, delimiter_len );
+
+		memcpy(acc_values + prefix_acc_len + delimiter_len + x_len + delimiter_len + y_len + delimiter_len + z_len + delimiter_len + accuracy_len + delimiter_len + timestamp_epoch_len + delimiter_len, end_prefix_acc, end_prefix_acc_len +1);
+
+		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
+				"AFTER join acc_values is: %s", acc_values);
 
 		gboolean is_secured = false;
 		int length = strlen(acc_values);
+		int calc_length = (x_len + y_len + z_len + prefix_acc_len + accuracy_len
+				+ timestamp_epoch_len + 50);
+		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
+				"calculated length malloc is %d", calc_length);
+
+		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER, "strlen length  is %d",
+				length);
 
 		mex_send(acc_values, length, is_secured);
 		free(acc_values);
