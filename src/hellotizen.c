@@ -18,13 +18,17 @@
 #undef  LOG_TAG_ACCELEROMETER
 #endif
 #define LOG_TAG_ACCELEROMETER "ACCELEROMETER_TEST"
+#ifdef  LOG_TAG_HRM
+#undef  LOG_TAG_HRM
+#endif
+#define LOG_TAG_HRM "HRM_TEST"
 
 #if !defined(PACKAGE)
 #define PACKAGE "org.example.hellotizen"
 #endif
 #define BUFLEN 200
 #define MIN_INTERVAL_S_HRM 500
-#define MIN_INTERVAL_S_ACCELEROMETER 100
+#define MIN_INTERVAL_S_ACCELEROMETER 50
 
 #define DEFAULT_MEASURE_DURATION 15
 
@@ -73,15 +77,6 @@ Evas_Object *new_button(appdata_s *ad, Evas_Object *parrent, char *name,
 void on_sensor_event_HRM(sensor_h sensor, sensor_event_s *event,
 		void *user_data) {
 
-	//system time not needed anymore, sensor returns epoch!
-	/*
-	 time_t raw_time;
-	 struct tm* time_info;
-	 time(&raw_time);
-	 time_info = localtime(&raw_time);
-	 */
-
-	// Select a specific sensor with a sensor handle
 	sensor_type_e type;
 	sensor_get_type(sensor, &type);
 
@@ -91,37 +86,73 @@ void on_sensor_event_HRM(sensor_h sensor, sensor_event_s *event,
 
 		dlog_print(DLOG_INFO, LOG_TAG, "Time: %llu, HR: %d, Accuracy: %d",
 				event->timestamp, event->values[0], event->accuracy);
-		char values[150];
-		char heart_rate[30];
-		char accuracy[10];
-		char timestamp[40];
+
+		char heart_rate[64]; //x
+		char accuracy[64];
+		char timestamp_epoch[64];
+		char delimiter[64] = ":";
+		char prefix_hrm[64];
+		char end_prefix_hrm[64];
+
 		char label_accuracy[15];
-		char hrm_prefix[] = HRM_PREFIX;
-		sprintf(heart_rate, "%f", event->values[0]);
-		sprintf(accuracy, "%d", event->accuracy);
-		sprintf(timestamp, "%llu", event->timestamp);
-		//sprintf(hour, "%d", time_info->tm_hour);
-		//sprintf(minute, "%d", time_info->tm_min);
-		//sprintf(second, "%d", time_info->tm_sec);
 
-		strcat(values, hrm_prefix);
-		strcat(values, ":");
-		strcat(values, heart_rate);
-		strcat(values, ":");
-		strcat(values, accuracy);
-		strcat(values, ":");
-		strcat(values, timestamp);
-		strcat(values, ":");
-		strcat(values, "END_HRM");
+		int error = snprintf(prefix_hrm, sizeof prefix_hrm, "%s", HRM_PREFIX);
+		error = snprintf(end_prefix_hrm, sizeof end_prefix_hrm, "%s",
+				HRM_END_PREFIX);
 
-		gboolean is_secured = false;
-		int length = strlen(values);
+		error = snprintf(timestamp_epoch, sizeof timestamp_epoch, "%llu",
+				event->timestamp);
+		error = snprintf(accuracy, sizeof accuracy, "%d", event->accuracy);
+		error = snprintf(heart_rate, sizeof heart_rate, "%f", event->values[0]);
+
+		if (error < 0) {
+			dlog_print(DLOG_ERROR, LOG_TAG_HRM,
+					"snprintf FALURE  at Heart Rate");
+		}
+		if (error >= sizeof heart_rate) {
+			dlog_print(DLOG_ERROR, LOG_TAG_HRM,
+					"snprintf TRUNCATED RESULT  at Heart Rate");
+		} else {
+			dlog_print(DLOG_ERROR, LOG_TAG_HRM, "snprintf success");
+
+		}
+
+		const size_t heart_rate_len = strlen(heart_rate);
+		const size_t delimiter_len = strlen(delimiter);
+		const size_t prefix_hrm_len = strlen(prefix_hrm);
+		const size_t end_prefix_hrm_len = strlen(end_prefix_hrm);
+		const size_t accuracy_len = strlen(accuracy);
+		const size_t timestamp_epoch_len = strlen(timestamp_epoch);
+
+		char *hrm_values = malloc(heart_rate_len + prefix_hrm_len + end_prefix_hrm_len + accuracy_len + timestamp_epoch_len + 10); // +1 for the null-terminator
+
+		memcpy(hrm_values, prefix_hrm, prefix_hrm_len);
+		memcpy(hrm_values + prefix_hrm_len, delimiter, delimiter_len);
+
+		memcpy(hrm_values + prefix_hrm_len + delimiter_len,heart_rate, heart_rate_len);
+		memcpy(hrm_values + prefix_hrm_len + delimiter_len + heart_rate_len,delimiter, delimiter_len);
+
+		memcpy(hrm_values + prefix_hrm_len + delimiter_len + heart_rate_len + delimiter_len,accuracy, accuracy_len);
+		memcpy(hrm_values + prefix_hrm_len + delimiter_len + heart_rate_len + delimiter_len + accuracy_len, delimiter, delimiter_len);
+
+		memcpy(hrm_values + prefix_hrm_len + delimiter_len + heart_rate_len + delimiter_len + accuracy_len + delimiter_len, timestamp_epoch, timestamp_epoch_len);
+		memcpy(hrm_values + prefix_hrm_len + delimiter_len + heart_rate_len + delimiter_len + accuracy_len + delimiter_len + timestamp_epoch_len, delimiter, delimiter_len);
+
+		memcpy(hrm_values + prefix_hrm_len + delimiter_len + heart_rate_len + delimiter_len + accuracy_len + delimiter_len + timestamp_epoch_len + delimiter_len, end_prefix_hrm, end_prefix_hrm_len );
+		memcpy(hrm_values + prefix_hrm_len + delimiter_len + heart_rate_len + delimiter_len + accuracy_len + delimiter_len + timestamp_epoch_len + delimiter_len + end_prefix_hrm_len, delimiter, delimiter_len +1);
+
+		int length = strlen(hrm_values);
 
 		elm_object_text_set(HeartRate_event_label, heart_rate);
 		strcat(label_accuracy, "Accuracy: ");
 		strcat(label_accuracy, accuracy);
 		elm_object_text_set(Accuracy_event_label, label_accuracy);
-		mex_send(values, length, is_secured);
+
+		gboolean is_secured = false;
+
+		mex_send(hrm_values, length, is_secured);
+		free(hrm_values);
+
 
 		break;
 	default:
@@ -152,11 +183,14 @@ void on_sensor_event_ACCELEROMETER(sensor_h sensor, sensor_event_s *event,
 		char timestamp_epoch[64];
 		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER, "CREATED VARS ACC EVENT");
 
-		int error = snprintf(prefix_acc, sizeof prefix_acc, "%s", ACCELEROMETER_PREFIX);
-		error = snprintf(end_prefix_acc, sizeof end_prefix_acc, "%s", ACCELEROMETER_END_PREFIX);
+		int error = snprintf(prefix_acc, sizeof prefix_acc, "%s",
+		ACCELEROMETER_PREFIX);
+		error = snprintf(end_prefix_acc, sizeof end_prefix_acc, "%s",
+		ACCELEROMETER_END_PREFIX);
 
-		error = snprintf(timestamp_epoch, sizeof timestamp_epoch, "%llu", event->timestamp);
-		error = snprintf(accuracy, sizeof accuracy, "%d",event->accuracy);
+		error = snprintf(timestamp_epoch, sizeof timestamp_epoch, "%llu",
+				event->timestamp);
+		error = snprintf(accuracy, sizeof accuracy, "%d", event->accuracy);
 		error = snprintf(x, ((sizeof x) + 1), "%f", event->values[0]);
 		error = snprintf(y, sizeof y, "%f", event->values[1]);
 		error = snprintf(z, sizeof z, "%f", event->values[2]);
@@ -181,31 +215,62 @@ void on_sensor_event_ACCELEROMETER(sensor_h sensor, sensor_event_s *event,
 		const size_t accuracy_len = strlen(accuracy);
 		const size_t timestamp_epoch_len = strlen(timestamp_epoch);
 
-		char *acc_values = malloc(x_len + y_len + z_len + prefix_acc_len + accuracy_len + timestamp_epoch_len + 300); // +1 for the null-terminator
+		char *acc_values = malloc(
+				x_len + y_len + z_len + prefix_acc_len + end_prefix_acc_len + accuracy_len
+						+ timestamp_epoch_len + 300); // +1 for the null-terminator
 
-
-/*
- * Create the final message. +1 for the \n at the end.
- */
+		/*
+		 * Create the final message. +1 for the \n at the end.
+		 */
 		memcpy(acc_values, prefix_acc, prefix_acc_len);
-		memcpy(acc_values + prefix_acc_len,delimiter, delimiter_len);
+		memcpy(acc_values + prefix_acc_len, delimiter, delimiter_len);
 
-		memcpy(acc_values + prefix_acc_len + delimiter_len,x, x_len);
-		memcpy(acc_values + prefix_acc_len + delimiter_len + x_len,delimiter, delimiter_len);
+		memcpy(acc_values + prefix_acc_len + delimiter_len, x, x_len);
+		memcpy(acc_values + prefix_acc_len + delimiter_len + x_len, delimiter,
+				delimiter_len);
 
-		memcpy(acc_values + prefix_acc_len + delimiter_len + x_len + delimiter_len,y, y_len);
-		memcpy(acc_values + prefix_acc_len + delimiter_len + x_len + delimiter_len + y_len, delimiter, delimiter_len);
+		memcpy(
+				acc_values + prefix_acc_len + delimiter_len + x_len
+						+ delimiter_len, y, y_len);
+		memcpy(
+				acc_values + prefix_acc_len + delimiter_len + x_len
+						+ delimiter_len + y_len, delimiter, delimiter_len);
 
-		memcpy(acc_values + prefix_acc_len + delimiter_len + x_len + delimiter_len + y_len + delimiter_len, z, z_len);
-		memcpy(acc_values + prefix_acc_len + delimiter_len + x_len + delimiter_len + y_len + delimiter_len + z_len, delimiter, delimiter_len);
+		memcpy(
+				acc_values + prefix_acc_len + delimiter_len + x_len
+						+ delimiter_len + y_len + delimiter_len, z, z_len);
+		memcpy(
+				acc_values + prefix_acc_len + delimiter_len + x_len
+						+ delimiter_len + y_len + delimiter_len + z_len,
+				delimiter, delimiter_len);
 
-		memcpy(acc_values + prefix_acc_len + delimiter_len + x_len + delimiter_len + y_len + delimiter_len + z_len + delimiter_len, accuracy, accuracy_len +1);
-		memcpy(acc_values + prefix_acc_len + delimiter_len + x_len + delimiter_len + y_len + delimiter_len + z_len + delimiter_len + accuracy_len, delimiter, delimiter_len);
+		memcpy(
+				acc_values + prefix_acc_len + delimiter_len + x_len
+						+ delimiter_len + y_len + delimiter_len + z_len
+						+ delimiter_len, accuracy, accuracy_len + 1);
+		memcpy(
+				acc_values + prefix_acc_len + delimiter_len + x_len
+						+ delimiter_len + y_len + delimiter_len + z_len
+						+ delimiter_len + accuracy_len, delimiter,
+				delimiter_len);
 
-		memcpy(acc_values + prefix_acc_len + delimiter_len + x_len + delimiter_len + y_len + delimiter_len + z_len + delimiter_len + accuracy_len + delimiter_len, timestamp_epoch, timestamp_epoch_len );
-		memcpy(acc_values + prefix_acc_len + delimiter_len + x_len + delimiter_len + y_len + delimiter_len + z_len + delimiter_len + accuracy_len + delimiter_len + timestamp_epoch_len, delimiter, delimiter_len );
+		memcpy(
+				acc_values + prefix_acc_len + delimiter_len + x_len
+						+ delimiter_len + y_len + delimiter_len + z_len
+						+ delimiter_len + accuracy_len + delimiter_len,
+				timestamp_epoch, timestamp_epoch_len);
+		memcpy(
+				acc_values + prefix_acc_len + delimiter_len + x_len
+						+ delimiter_len + y_len + delimiter_len + z_len
+						+ delimiter_len + accuracy_len + delimiter_len
+						+ timestamp_epoch_len, delimiter, delimiter_len);
 
-		memcpy(acc_values + prefix_acc_len + delimiter_len + x_len + delimiter_len + y_len + delimiter_len + z_len + delimiter_len + accuracy_len + delimiter_len + timestamp_epoch_len + delimiter_len, end_prefix_acc, end_prefix_acc_len +1);
+		memcpy(
+				acc_values + prefix_acc_len + delimiter_len + x_len
+						+ delimiter_len + y_len + delimiter_len + z_len
+						+ delimiter_len + accuracy_len + delimiter_len
+						+ timestamp_epoch_len + delimiter_len, end_prefix_acc,
+				end_prefix_acc_len + 1);
 
 		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
 				"AFTER join acc_values is: %s", acc_values);
