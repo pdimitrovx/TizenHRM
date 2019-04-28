@@ -25,6 +25,8 @@
 #define BUFLEN 200
 #define MIN_INTERVAL_S 500
 #define DEFAULT_MEASURE_DURATION 15
+#define HRM_PREFIX "HRM_START"
+#define ACCELEROMETER_PREFIX "ACC_START"
 
 /*=============================UI EVAS START HERE================================*/
 /* An Evas object is the most basic visual entity used in Evas.
@@ -48,7 +50,6 @@ Evas_Object *Accuracy_event_label_data;
 sensor_listener_h listenerHRM;
 sensor_listener_h listenerACC;
 
-
 Evas_Object *new_button(appdata_s *ad, Evas_Object *parrent, char *name,
 		void *action) {
 
@@ -63,72 +64,59 @@ Evas_Object *new_button(appdata_s *ad, Evas_Object *parrent, char *name,
 }
 
 /* Registering a Callback for sensor event  */
-void on_sensor_event(sensor_h sensor, sensor_event_s *event, void *user_data) {
-	int occured_events = 0;
-	time_t raw_time;
-	struct tm* time_info;
-	time(&raw_time);
-	time_info = localtime(&raw_time);
-	char out[100];
+void on_sensor_event_HRM(sensor_h sensor, sensor_event_s *event,
+		void *user_data) {
+
+	//system time not needed anymore, sensor returns epoch!
+	/*
+	 time_t raw_time;
+	 struct tm* time_info;
+	 time(&raw_time);
+	 time_info = localtime(&raw_time);
+	 */
+
 	// Select a specific sensor with a sensor handle
 	sensor_type_e type;
 	sensor_get_type(sensor, &type);
+
 	switch (type) {
 
-	//print mesurement to console
 	case SENSOR_HRM:
-		/*
-		 * count each event = corresponding to time as measurement is taken every half a second
-		 * There is the correlation - 2 events, (500ms apart) = 1 second.
-		 * Duration for example is 15 seconds = 30 events!
-		 */
-
-		occured_events = occured_events + 1;
-		//if (occured_events <= time_to_measure) {
 
 		dlog_print(DLOG_INFO, LOG_TAG, "Time: %llu, HR: %d, Accuracy: %d",
 				event->timestamp, event->values[0], event->accuracy);
-		char values[100];
-		char acc[100];
-		char timestamp[100];
-		char hour[10];
-		char minute[10];
-		char second[10];
-		//char payload[400];
-		sprintf(values, "%f", event->values[0]);
-		sprintf(acc, "%d", event->accuracy);
+		char values[150];
+		char heart_rate[30];
+		char accuracy[10];
+		char timestamp[40];
+		char label_accuracy[15];
+		char hrm_prefix[] = HRM_PREFIX;
+		sprintf(heart_rate, "%f", event->values[0]);
+		sprintf(accuracy, "%d", event->accuracy);
 		sprintf(timestamp, "%llu", event->timestamp);
-		sprintf(hour, "%d", time_info->tm_hour);
-		sprintf(minute, "%d", time_info->tm_min);
-		sprintf(second, "%d", time_info->tm_sec);
+		//sprintf(hour, "%d", time_info->tm_hour);
+		//sprintf(minute, "%d", time_info->tm_min);
+		//sprintf(second, "%d", time_info->tm_sec);
 
-		//%d:%s%d:%ds time_info->tm_hour, time_info->tm_min < 10 ? "0" : "", time_info->tm_min, time_info->tm_sec,
+		strcat(values, hrm_prefix);
+		strcat(values, ":");
+		strcat(values, heart_rate);
+		strcat(values, ":");
+		strcat(values, accuracy);
+		strcat(values, ":");
+		strcat(values, timestamp);
+		strcat(values, ":");
+		strcat(values, "END_HRM");
 
-		//snprintf(buf, sizeof buf, "%s%s%s%s", values, acc, timestamp, str4);
-		strcat(values, ":");
-		strcat(values, acc);
-		strcat(values, ":");
-		strcat(values, hour);
-		strcat(values, ":");
-		strcat(values, minute);
-		strcat(values, ":");
-		strcat(values, second);
-		//strcat(values, ":");
-
-		/*
-		 char accuracy[100];
-		 sprintf(accuracy,"%d", event->accuracy);
-		 elm_object_text_set(Accuracy_event_label, accuracy);
-		 */
 		gboolean is_secured = false;
-		int length = 40;
+		int length = strlen(values);
 
-		elm_object_text_set(HeartRate_event_label, values);
-		elm_object_text_set(Accuracy_event_label, acc);
+		elm_object_text_set(HeartRate_event_label, heart_rate);
+		strcat(label_accuracy, "Accuracy: ");
+		strcat(label_accuracy, accuracy);
+		elm_object_text_set(Accuracy_event_label, label_accuracy);
 		mex_send(values, length, is_secured);
-		//} else {
-		//	stop_sensor_HRM();
-		//}
+
 		break;
 	default:
 		dlog_print(DLOG_ERROR, LOG_TAG, "Not an HRM event");
@@ -146,52 +134,40 @@ void on_sensor_event_ACCELEROMETER(sensor_h sensor, sensor_event_s *event,
 	//print mesurement to console
 	case SENSOR_ACCELEROMETER:
 
-//3 Cartesian axis values and a timestamp X,Y,Z
+		//3 Cartesian axis values and a timestamp X,Y,Z
 		dlog_print(DLOG_INFO, LOG_TAG_ACCELEROMETER,
 				"X: %f, Y: %f, Z: %f, timestamp: %llu", event->values[0],
 				event->values[1], event->values[2], event->timestamp);
-		/*
-		 char values[100];
-		 char acc[100];
-		 char timestamp[100];
-		 char hour[10];
-		 char minute[10];
-		 char second[10];
-		 //char payload[400];
-		 sprintf(values, "%f", event->values[0]);
-		 sprintf(acc, "%d", event->accuracy);
-		 sprintf(timestamp, "%llu", event->timestamp);
-		 sprintf(hour, "%d", time_info->tm_hour);
-		 sprintf(minute, "%d", time_info->tm_min);
-		 sprintf(second, "%d", time_info->tm_sec);
 
-		 //%d:%s%d:%ds time_info->tm_hour, time_info->tm_min < 10 ? "0" : "", time_info->tm_min, time_info->tm_sec,
+		char acc_values[150];
+		char acc_value_X[25];
+		char acc_value_Y[25];
+		char acc_value_Z[25];
+		char acc_value_epoch[25];
+		char acc_prefix[] = ACCELEROMETER_PREFIX;
+		sprintf(acc_value_X, "%f", event->values[0]);
+		sprintf(acc_value_Y, "%f", event->values[1]);
+		sprintf(acc_value_Z, "%f", event->values[2]);
+		sprintf(acc_value_epoch, "%llu", event->timestamp);
 
-		 //snprintf(buf, sizeof buf, "%s%s%s%s", values, acc, timestamp, str4);
-		 strcat(values, ":");
-		 strcat(values, acc);
-		 strcat(values, ":");
-		 strcat(values, hour);
-		 strcat(values, ":");
-		 strcat(values, minute);
-		 strcat(values, ":");
-		 strcat(values, second);
-		 //strcat(values, ":");
-		 */
-		/*
-		 char accuracy[100];
-		 sprintf(accuracy,"%d", event->accuracy);
-		 elm_object_text_set(Accuracy_event_label, accuracy);
-		 */
+		//snprintf(buf, sizeof buf, "%s%s%s%s", values, acc, timestamp, str4);
+		strcat(acc_values, acc_prefix);
+		strcat(acc_values, ":");
+		strcat(acc_values, acc_value_X);
+		strcat(acc_values, ":");
+		strcat(acc_values, acc_value_Y);
+		strcat(acc_values, ":");
+		strcat(acc_values, acc_value_Z);
+		strcat(acc_values, ":");
+		strcat(acc_values, acc_value_epoch);
+		strcat(acc_values, ":");
+		strcat(acc_values, "END_ACC");
+
 		gboolean is_secured = false;
-		int length = 40;
+		int length = strlen(acc_values);
 
-		//elm_object_text_set(HeartRate_event_label, values);
-		//elm_object_text_set(Accuracy_event_label, acc);
-		//mex_send(values, length, is_secured);
-		//} else {
-		//	stop_sensor_HRM();
-		//}
+		mex_send(acc_values, length, is_secured);
+
 		break;
 	default:
 		dlog_print(DLOG_ERROR, LOG_TAG, "Not an ACCELEROMETER event");
@@ -240,7 +216,7 @@ void stop_sensor_ALL() {
 	elm_object_disabled_set(stopHRM, EINA_TRUE);
 }
 
-void _sensor_stop_cb(void *data, Evas_Object *obj, void *event_info) {
+void _sensor_stop_cb_HRM(void *data, Evas_Object *obj, void *event_info) {
 //void _sensor_stop_cb() {
 	int error = sensor_listener_unset_event_cb(listenerHRM);
 	if (error != SENSOR_ERROR_NONE) {
@@ -332,7 +308,7 @@ void _sensor_start_cb_HRM() {
 
 	/* Register a callback to be invoked when sensor events are delivered via a sensor listener [above]  */
 	error = sensor_listener_set_event_cb(listenerHRM, MIN_INTERVAL_S,
-			on_sensor_event, user_data);
+			on_sensor_event_HRM, user_data);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG,
 				"sensor_listener_set_event_cb error: %d", error);
@@ -407,7 +383,7 @@ void _sensor_start_cb_HRM() {
 	}
 	//Set the button states
 	elm_object_disabled_set(startHRM, EINA_TRUE);
-	elm_object_disabled_set(stopHRM, EINA_FALSE);
+	elm_object_disabled_set(stopHRM, EINA_TRUE);
 
 }
 
@@ -529,7 +505,7 @@ void _sensor_start_cb_ACCELEROMETER() {
 	dlog_print(DLOG_DEBUG, LOG_TAG_ACCELEROMETER, "sensor_listener_start");
 
 	elm_object_disabled_set(startHRM, EINA_TRUE);
-	elm_object_disabled_set(stopHRM, EINA_FALSE);
+	elm_object_disabled_set(stopHRM, EINA_TRUE);
 
 	/* Read sensor data (from started listener).
 	 sensor_event_s event;
@@ -598,7 +574,7 @@ void _create_new_cd_display(appdata_s *ad, char *name, void *cb) {
 	evas_object_show(HeartRate_event_label);
 	evas_object_show(Accuracy_event_label);
 
-	stopHRM = new_button(ad, box, "Stop", _sensor_stop_cb);
+	stopHRM = new_button(ad, box, "Stop", _sensor_stop_cb_HRM);
 
 }
 
