@@ -23,7 +23,9 @@
 #define PACKAGE "org.example.hellotizen"
 #endif
 #define BUFLEN 200
-#define MIN_INTERVAL_S 500
+#define MIN_INTERVAL_S_HRM 500
+#define MIN_INTERVAL_S_ACCELEROMETER 500
+
 #define DEFAULT_MEASURE_DURATION 15
 #define HRM_PREFIX "HRM_START"
 #define ACCELEROMETER_PREFIX "ACC_START"
@@ -135,43 +137,82 @@ void on_sensor_event_ACCELEROMETER(sensor_h sensor, sensor_event_s *event,
 	case SENSOR_ACCELEROMETER:
 
 		//3 Cartesian axis values and a timestamp X,Y,Z
-		dlog_print(DLOG_INFO, LOG_TAG_ACCELEROMETER,
-				"X: %f, Y: %f, Z: %f, timestamp: %llu", event->values[0],
-				event->values[1], event->values[2], event->timestamp);
 
-		char acc_values[200];
-		char acc_value_X[25];
-		char acc_value_Y[25];
-		char acc_value_Z[25];
-		char acc_value_epoch[25];
-		char acc_accuracy[5];
-		char acc_prefix[] = ACCELEROMETER_PREFIX;
-		sprintf(acc_value_X, "%f", event->values[0]);
-		sprintf(acc_value_Y, "%f", event->values[1]);
-		sprintf(acc_value_Z, "%f", event->values[2]);
-		sprintf(acc_value_epoch, "%llu", event->timestamp);
-		sprintf(acc_accuracy, "%d", event->accuracy);
+		dlog_print(DLOG_INFO, "domati", "X: %f, Y: %f, Z: %f, timestamp: %llu",
+				event->values[0], event->values[1], event->values[2],
+				event->timestamp);
 
-		//snprintf(buf, sizeof buf, "%s%s%s%s", values, acc, timestamp, str4);
-		strcat(acc_values, acc_prefix);
-		strcat(acc_values, ":");
-		strcat(acc_values, acc_value_X);
-		strcat(acc_values, ":");
-		strcat(acc_values, acc_value_Y);
-		strcat(acc_values, ":");
-		strcat(acc_values, acc_value_Z);
-		strcat(acc_values, ":");
-		strcat(acc_values, acc_accuracy);
-		strcat(acc_values, ":");
-		strcat(acc_values, acc_value_epoch);
-		strcat(acc_values, ":");
+		/*
+		 char acc_values[450];
+		 char acc_value_X[100];
+		 char acc_value_Y[100];
+		 char acc_value_Z[100];
+		 char acc_value_epoch[50];
+		 char acc_accuracy[50];
+		 char acc_prefix[50] = ACCELEROMETER_PREFIX;
+		 sprintf(acc_value_X, "%f", event->values[0]);
+		 sprintf(acc_value_Y, "%f", event->values[1]);
+		 sprintf(acc_value_Z, "%f", event->values[2]);
+		 sprintf(acc_value_epoch, "%llu", event->timestamp);
+		 sprintf(acc_accuracy, "%d", event->accuracy);
 
-		strcat(acc_values, "END_ACC");
+		 //snprintf(buf, sizeof buf, "%s%s%s%s", values, acc, timestamp, str4);
+		 strcat(acc_values, acc_prefix);
+		 strcat(acc_values, ":");
+		 strcat(acc_values, acc_value_X);
+		 strcat(acc_values, ":");
+		 strcat(acc_values, acc_value_Y);
+		 strcat(acc_values, ":");
+		 strcat(acc_values, acc_value_Z);
+		 strcat(acc_values, ":");
+		 strcat(acc_values, acc_accuracy);
+		 strcat(acc_values, ":");
+		 strcat(acc_values, acc_value_epoch);
+		 strcat(acc_values, ":");
+
+		 strcat(acc_values, "END_ACC");
+		 strcat(acc_values, "/n");
+		 */
+		char x[64];
+
+		char y[64];
+		char z[64];
+
+		int error = snprintf(x, ((sizeof x) + 1), "%f", event->values[0]);
+		if (error < 0) {
+			dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
+					"snprintf FALURE  at X");
+		}
+		if (error >= sizeof x) {
+			dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
+					"snprintf TRUNCATED RESULT  at X");
+		} else {
+
+			//dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER, "snprintf OK at X");
+		}
+		error = snprintf(y, sizeof y, "%f", event->values[1]);
+		error = snprintf(z, sizeof z, "%f", event->values[2]);
+
+		const size_t x_len = strlen(x);
+		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER, "x-len is: %zu", x_len);
+		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER, "x is: %s", x);
+
+		const size_t y_len = strlen(y);
+		const size_t z_len = strlen(z);
+
+		char *acc_values = malloc(x_len + y_len + z_len + 4); // +1 for the null-terminator
+
+		//dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER, "BEFORE  join acc_values is: %s", acc_values);
+
+		error = sprintf(acc_values,"%s", x);
+
+		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER, "AFTER join acc_values is: %s", acc_values);
 
 		gboolean is_secured = false;
 		int length = strlen(acc_values);
 
 		mex_send(acc_values, length, is_secured);
+		free(acc_values);
 
 		break;
 	default:
@@ -312,7 +353,7 @@ void _sensor_start_cb_HRM() {
 	dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_create_listener");
 
 	/* Register a callback to be invoked when sensor events are delivered via a sensor listener [above]  */
-	error = sensor_listener_set_event_cb(listenerHRM, MIN_INTERVAL_S,
+	error = sensor_listener_set_event_cb(listenerHRM, MIN_INTERVAL_S_HRM,
 			on_sensor_event_HRM, user_data);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG,
@@ -323,7 +364,7 @@ void _sensor_start_cb_HRM() {
 	dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_listener_set_event_cb");
 
 	/* set the interval for HRM in milliseconds. 100-1000ms */
-	error = sensor_listener_set_interval(listenerHRM, MIN_INTERVAL_S);
+	error = sensor_listener_set_interval(listenerHRM, MIN_INTERVAL_S_HRM);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG,
 				"sensor_listener_set_interval error: %d", error);
@@ -454,8 +495,8 @@ void _sensor_start_cb_ACCELEROMETER() {
 	dlog_print(DLOG_DEBUG, LOG_TAG_ACCELEROMETER, "sensor_create_listener");
 
 	/* Register a callback to be invoked when sensor events are delivered via a sensor listener [above]  */
-	error = sensor_listener_set_event_cb(listenerACC, MIN_INTERVAL_S,
-			on_sensor_event_ACCELEROMETER, user_data);
+	error = sensor_listener_set_event_cb(listenerACC,
+	MIN_INTERVAL_S_ACCELEROMETER, on_sensor_event_ACCELEROMETER, user_data);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
 				"sensor_listener_set_event_cb error: %d", error);
@@ -466,7 +507,8 @@ void _sensor_start_cb_ACCELEROMETER() {
 			"sensor_listener_set_event_cb");
 
 	/* set the interval for ACCELEROMETER in milliseconds. 100-1000ms */
-	error = sensor_listener_set_interval(listenerACC, MIN_INTERVAL_S);
+	error = sensor_listener_set_interval(listenerACC,
+	MIN_INTERVAL_S_ACCELEROMETER);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
 				"sensor_listener_set_interval error: %d", error);
