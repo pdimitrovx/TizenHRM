@@ -10,12 +10,18 @@
 
 #define NUM_OF_ITEMS 5
 
-void initialize_sap();
 void update_ui(char *data);
+
+void initialize_sap();
 void mex_send();
+void _sensor_start_cb_ACCELEROMETER();
+
 void _sensor_start_cb_HRM();
+
+void stop_sensor_ALL();
+
 void start_streaming_data();
-void stop_sensor_HRM();
+
 
 #if !defined(PACKAGE)
 #define PACKAGE "org.example.hellotizen"

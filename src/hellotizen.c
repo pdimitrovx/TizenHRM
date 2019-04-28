@@ -147,7 +147,7 @@ void on_sensor_event_ACCELEROMETER(sensor_h sensor, sensor_event_s *event,
 //3 Cartesian axis values and a timestamp X,Y,Z
 		dlog_print(DLOG_INFO, LOG_TAG_ACCELEROMETER,
 				"X: %f, Y: %f, Z: %f, timestamp: %llu", event->values[0],
-				event->values[1], event->values[2],event->timestamp);
+				event->values[1], event->values[2], event->timestamp);
 		/*
 		 char values[100];
 		 char acc[100];
@@ -210,7 +210,7 @@ void _sensor_accuracy_changed_cb(sensor_h sensor, unsigned long long timestamp,
 	//elm_object_text_set(Accuracy_event_label, accuracy1);
 }
 
-void stop_sensor_HRM() {
+void stop_sensor_ALL() {
 	int error = sensor_listener_unset_event_cb(listener);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG,
@@ -228,6 +228,8 @@ void stop_sensor_HRM() {
 		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_destroy_listener error: %d",
 				error);
 	}
+	elm_object_disabled_set(startHRM, EINA_FALSE);
+	elm_object_disabled_set(stopHRM, EINA_TRUE);
 }
 
 void _sensor_stop_cb(void *data, Evas_Object *obj, void *event_info) {
@@ -517,6 +519,9 @@ void _sensor_start_cb_ACCELEROMETER() {
 	}
 
 	dlog_print(DLOG_DEBUG, LOG_TAG_ACCELEROMETER, "sensor_listener_start");
+
+	elm_object_disabled_set(startHRM, EINA_TRUE);
+	elm_object_disabled_set(stopHRM, EINA_FALSE);
 
 	/* Read sensor data (from started listener).
 	 sensor_event_s event;
