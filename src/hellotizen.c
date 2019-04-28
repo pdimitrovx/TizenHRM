@@ -161,10 +161,11 @@ void on_sensor_event_ACCELEROMETER(sensor_h sensor, sensor_event_s *event,
 		strcat(acc_values, ":");
 		strcat(acc_values, acc_value_Z);
 		strcat(acc_values, ":");
+		strcat(acc_values, acc_accuracy);
+		strcat(acc_values, ":");
 		strcat(acc_values, acc_value_epoch);
 		strcat(acc_values, ":");
-			strcat(acc_values, acc_accuracy);
-		strcat(acc_values, ":");
+
 		strcat(acc_values, "END_ACC");
 
 		gboolean is_secured = false;
