@@ -45,7 +45,9 @@ Evas_Object *HeartRate_event_label;
 Evas_Object *Accuracy_event_label;
 Evas_Object *Accuracy_event_label_data;
 
-sensor_listener_h listener;
+sensor_listener_h listenerHRM;
+sensor_listener_h listenerACC;
+
 
 Evas_Object *new_button(appdata_s *ad, Evas_Object *parrent, char *name,
 		void *action) {
@@ -201,7 +203,7 @@ void _sensor_accuracy_changed_cb(sensor_h sensor, unsigned long long timestamp,
 	dlog_print(DLOG_DEBUG, LOG_TAG, "Sensor accuracy callback invoked");
 	sensor_event_s event;
 
-	int error = sensor_listener_read_data(listener, &event);
+	int error = sensor_listener_read_data(listenerHRM, &event);
 	dlog_print(DLOG_DEBUG, LOG_TAG,
 			"FROM CALLBACK sensor accuracy changed at: %lu accuracy is: %d",
 			timestamp, event.accuracy);
@@ -211,19 +213,25 @@ void _sensor_accuracy_changed_cb(sensor_h sensor, unsigned long long timestamp,
 }
 
 void stop_sensor_ALL() {
-	int error = sensor_listener_unset_event_cb(listener);
+	int error = sensor_listener_unset_event_cb(listenerHRM);
+	error = sensor_listener_unset_event_cb(listenerACC);
+
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG,
 				"sensor_listener_unset_event_cb error: %d", error);
 	}
 
-	error = sensor_listener_stop(listener);
+	error = sensor_listener_stop(listenerHRM);
+	error = sensor_listener_stop(listenerACC);
+
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_listener_stop error: %d",
 				error);
 	}
 
-	error = sensor_destroy_listener(listener);
+	error = sensor_destroy_listener(listenerHRM);
+	error = sensor_destroy_listener(listenerACC);
+
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_destroy_listener error: %d",
 				error);
@@ -234,19 +242,19 @@ void stop_sensor_ALL() {
 
 void _sensor_stop_cb(void *data, Evas_Object *obj, void *event_info) {
 //void _sensor_stop_cb() {
-	int error = sensor_listener_unset_event_cb(listener);
+	int error = sensor_listener_unset_event_cb(listenerHRM);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG,
 				"sensor_listener_unset_event_cb error: %d", error);
 	}
 
-	error = sensor_listener_stop(listener);
+	error = sensor_listener_stop(listenerHRM);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_listener_stop error: %d",
 				error);
 	}
 
-	error = sensor_destroy_listener(listener);
+	error = sensor_destroy_listener(listenerHRM);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_destroy_listener error: %d",
 				error);
@@ -314,7 +322,7 @@ void _sensor_start_cb_HRM() {
 	}
 
 	/* Create a sensor listener */
-	error = sensor_create_listener(sensor, &listener);
+	error = sensor_create_listener(sensor, &listenerHRM);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_create_listener error: %d",
 				error);
@@ -323,7 +331,7 @@ void _sensor_start_cb_HRM() {
 	dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_create_listener");
 
 	/* Register a callback to be invoked when sensor events are delivered via a sensor listener [above]  */
-	error = sensor_listener_set_event_cb(listener, MIN_INTERVAL_S,
+	error = sensor_listener_set_event_cb(listenerHRM, MIN_INTERVAL_S,
 			on_sensor_event, user_data);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG,
@@ -334,7 +342,7 @@ void _sensor_start_cb_HRM() {
 	dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_listener_set_event_cb");
 
 	/* set the interval for HRM in milliseconds. 100-1000ms */
-	error = sensor_listener_set_interval(listener, MIN_INTERVAL_S);
+	error = sensor_listener_set_interval(listenerHRM, MIN_INTERVAL_S);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG,
 				"sensor_listener_set_interval error: %d", error);
@@ -343,7 +351,7 @@ void _sensor_start_cb_HRM() {
 	dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_listener_set_intervals");
 
 	// Registering the Accuracy Changed Callback
-	error = sensor_listener_set_accuracy_cb(listener,
+	error = sensor_listener_set_accuracy_cb(listenerHRM,
 			_sensor_accuracy_changed_cb, user_data);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG,
@@ -354,7 +362,7 @@ void _sensor_start_cb_HRM() {
 	dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_listener_set_accuracy_cb");
 
 	/* Changes the power-saving behavior of a sensor listener. [ALWAYS ON] */
-	error = sensor_listener_set_option(listener, SENSOR_OPTION_ALWAYS_ON);
+	error = sensor_listener_set_option(listenerHRM, SENSOR_OPTION_ALWAYS_ON);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_listener_set_option error: %d",
 				error);
@@ -364,7 +372,7 @@ void _sensor_start_cb_HRM() {
 	dlog_print(DLOG_DEBUG, LOG_TAG, "sensor_listener_set_option");
 
 	/* START the sensor listener */
-	error = sensor_listener_start(listener);
+	error = sensor_listener_start(listenerHRM);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_listener_start error: %d",
 				error);
@@ -375,7 +383,7 @@ void _sensor_start_cb_HRM() {
 
 	/* Read sensor data (from started listener). */
 	sensor_event_s event;
-	error = sensor_listener_read_data(listener, &event);
+	error = sensor_listener_read_data(listenerHRM, &event);
 	if (error != SENSOR_ERROR_NONE) {
 
 		dlog_print(DLOG_ERROR, LOG_TAG, "sensor_listener_read_data error: %d",
@@ -456,7 +464,7 @@ void _sensor_start_cb_ACCELEROMETER() {
 	}
 
 	/* Create a sensor listener */
-	error = sensor_create_listener(sensor, &listener);
+	error = sensor_create_listener(sensor, &listenerACC);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
 				"sensor_create_listener error: %d", error);
@@ -465,7 +473,7 @@ void _sensor_start_cb_ACCELEROMETER() {
 	dlog_print(DLOG_DEBUG, LOG_TAG_ACCELEROMETER, "sensor_create_listener");
 
 	/* Register a callback to be invoked when sensor events are delivered via a sensor listener [above]  */
-	error = sensor_listener_set_event_cb(listener, MIN_INTERVAL_S,
+	error = sensor_listener_set_event_cb(listenerACC, MIN_INTERVAL_S,
 			on_sensor_event_ACCELEROMETER, user_data);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
@@ -477,7 +485,7 @@ void _sensor_start_cb_ACCELEROMETER() {
 			"sensor_listener_set_event_cb");
 
 	/* set the interval for ACCELEROMETER in milliseconds. 100-1000ms */
-	error = sensor_listener_set_interval(listener, MIN_INTERVAL_S);
+	error = sensor_listener_set_interval(listenerACC, MIN_INTERVAL_S);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
 				"sensor_listener_set_interval error: %d", error);
@@ -501,7 +509,7 @@ void _sensor_start_cb_ACCELEROMETER() {
 	 */
 
 	/* Changes the power-saving behavior of a sensor listener. [ALWAYS ON] */
-	error = sensor_listener_set_option(listener, SENSOR_OPTION_ALWAYS_ON);
+	error = sensor_listener_set_option(listenerACC, SENSOR_OPTION_ALWAYS_ON);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
 				"sensor_listener_set_option error: %d", error);
@@ -511,7 +519,7 @@ void _sensor_start_cb_ACCELEROMETER() {
 	dlog_print(DLOG_DEBUG, LOG_TAG_ACCELEROMETER, "sensor_listener_set_option");
 
 	/* START the sensor listener */
-	error = sensor_listener_start(listener);
+	error = sensor_listener_start(listenerACC);
 	if (error != SENSOR_ERROR_NONE) {
 		dlog_print(DLOG_ERROR, LOG_TAG_ACCELEROMETER,
 				"sensor_listener_start error: %d", error);
@@ -676,9 +684,11 @@ static bool app_create(void *data) {
 
 static void app_terminate(void *data) {
 	/* Release all resources for sensor. */
-	int error = sensor_listener_stop(listener);
-	error = sensor_destroy_listener(listener);
+	int error = sensor_listener_stop(listenerACC);
+	error = sensor_destroy_listener(listenerACC);
 
+	error = sensor_listener_stop(listenerHRM);
+	error = sensor_destroy_listener(listenerHRM);
 }
 
 int main(int argc, char *argv[]) {
