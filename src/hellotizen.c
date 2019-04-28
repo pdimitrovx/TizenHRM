@@ -139,16 +139,18 @@ void on_sensor_event_ACCELEROMETER(sensor_h sensor, sensor_event_s *event,
 				"X: %f, Y: %f, Z: %f, timestamp: %llu", event->values[0],
 				event->values[1], event->values[2], event->timestamp);
 
-		char acc_values[150];
+		char acc_values[200];
 		char acc_value_X[25];
 		char acc_value_Y[25];
 		char acc_value_Z[25];
 		char acc_value_epoch[25];
+		char acc_accuracy[5];
 		char acc_prefix[] = ACCELEROMETER_PREFIX;
 		sprintf(acc_value_X, "%f", event->values[0]);
 		sprintf(acc_value_Y, "%f", event->values[1]);
 		sprintf(acc_value_Z, "%f", event->values[2]);
 		sprintf(acc_value_epoch, "%llu", event->timestamp);
+		sprintf(acc_accuracy, "%d", event->accuracy);
 
 		//snprintf(buf, sizeof buf, "%s%s%s%s", values, acc, timestamp, str4);
 		strcat(acc_values, acc_prefix);
@@ -160,6 +162,8 @@ void on_sensor_event_ACCELEROMETER(sensor_h sensor, sensor_event_s *event,
 		strcat(acc_values, acc_value_Z);
 		strcat(acc_values, ":");
 		strcat(acc_values, acc_value_epoch);
+		strcat(acc_values, ":");
+			strcat(acc_values, acc_accuracy);
 		strcat(acc_values, ":");
 		strcat(acc_values, "END_ACC");
 
